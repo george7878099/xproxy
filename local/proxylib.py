@@ -1650,7 +1650,7 @@ class AdvancedNet2(Net2):
         return iplist
 
     def get_ipaddrs(self):
-        ff=open('good_ip.txt','r')
+        ff=open('good_ip.txt','r+')
         cur=""
         lst=[]
         while True:

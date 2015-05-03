@@ -1,6 +1,6 @@
 ## Xproxy
 * Requirements: python2.7.8 gevent-openssl(python) dnslib(python) pygeoip(python)
-* checkip.sh, proxy.sh
+* start.sh
 
 ## Links
 * https://github.com/goagent/goagent

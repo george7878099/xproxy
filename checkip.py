@@ -61,15 +61,15 @@ else:
     
 
 #最大IP延时，单位毫秒
-g_maxhandletimeout = 5800
+g_maxhandletimeout = 4000
 #最大可用IP数量
-g_maxhandleipcnt = 5
+g_maxhandleipcnt = 1
 #检查IP的线程数
 g_maxthreads = 128
 #是否立即检查上一次的google ip列表
-g_checklastgoogleipfirst = 1
+g_checklastgoogleipfirst = 0
 #结束时是否需要对ip_tmpok.txt里面的结果进行排序
-g_needsorttmpokfile = 1
+g_needsorttmpokfile = 0
 
 "连接超时设置"
 g_conntimeout = 5

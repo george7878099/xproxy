@@ -1,5 +1,7 @@
 #!/bin/bash
 
+KEEP_IP=100
+
 while true;
 do
 	rm ip.txt;
@@ -10,5 +12,8 @@ do
 	if [ $? -ne 0 ]; then
 		exit;
 	fi
-	cp ip.txt local/good_ip.txt;
+	cat ip.txt local/good_ip.txt > allip.txt;
+	head -$KEEP_IP allip.txt > local/good_ip.txt;
+	#one ip may appear more than once
+	rm allip.txt;
 done;
