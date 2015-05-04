@@ -1,6 +1,7 @@
 #!/bin/bash
 
-cd ./local && python2 proxy.py &
-proxy_PID=$!
+cd ./local
+coproc PROXY { python2 proxy.py < /dev/null; }
+cd ..
 ./checkip.sh
-kill $proxy_PID
+kill $PROXY_PID
