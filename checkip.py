@@ -68,7 +68,7 @@ g_maxhandleipcnt = 1
 g_maxthreads = 128
 #是否立即检查上一次的google ip列表
 g_checklastgoogleipfirst = 0
-#结束时是否需要对ip_tmpok.txt里面的结果进行排序
+#结束时是否需要对tmpokfile里面的结果进行排序
 g_needsorttmpokfile = 0
 
 "连接超时设置"
@@ -77,11 +77,11 @@ g_handshaketimeout = 7
 
 g_filedir = os.path.dirname(__file__)
 g_cacertfile = os.path.join(g_filedir, "local/cacert.pem")
-g_ipfile = os.path.join(g_filedir, "ip.txt")
-g_tmpnofile = os.path.join(g_filedir, "ip_tmpno.txt")
-g_tmpokfile = os.path.join(g_filedir, "ip_tmpok.txt")
-g_tmperrorfile = os.path.join(g_filedir, "ip_tmperror.txt")
-g_googleipfile = os.path.join(g_filedir,"googleip.txt")
+g_ipfile = os.path.join(g_filedir, "ip.tmp")
+g_tmpnofile = os.path.join(g_filedir, "ip_tmpno.tmp")
+g_tmpokfile = os.path.join(g_filedir, "ip_tmpok.tmp")
+g_tmperrorfile = os.path.join(g_filedir, "ip_tmperror.tmp")
+g_googleipfile = os.path.join(g_filedir,"googleip.tmp")
 
 
 # gevent socket cnt must less than 1024

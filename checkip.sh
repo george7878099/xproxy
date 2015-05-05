@@ -4,16 +4,16 @@ KEEP_IP=100
 
 while true;
 do
-	rm ip.txt;
-	rm ip_tmperror.txt;
-	rm ip_tmpno.txt;
-	rm ip_tmpok.txt;
+	rm ip.tmp;
+	rm ip_tmperror.tmp;
+	rm ip_tmpno.tmp;
+	rm ip_tmpok.tmp;
 	python2 ./checkip.py;
 	if [ $? -ne 0 ]; then
 		exit;
 	fi
-	cat ip.txt local/good_ip.txt > allip.txt;
-	head -$KEEP_IP allip.txt > local/good_ip.txt;
+	cat ip.tmp local/good_ip.txt > allip.tmp;
+	head -$KEEP_IP allip.tmp > local/good_ip.txt;
 	#one ip may appear more than once
-	rm allip.txt;
+	rm allip.tmp;
 done;
