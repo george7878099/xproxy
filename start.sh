@@ -1,10 +1,31 @@
 #!/bin/bash
 
-./checkip.sh <&- &
-CHECKIP_PID=`expr $!`
+if [ "$*" == "-p" ]; then
+	./checkip.sh </dev/null &
+	CHECKIP_PID=`expr $!`
+	
+	cd ./local
+	python2 proxy.py </dev/null >/dev/null 2>&1
+elif [ "$*" == "-c" ]; then
+	./checkip.sh </dev/null >/dev/null 2>&1 &
+	CHECKIP_PID=`expr $!`
+	
+	cd ./local
+	python2 proxy.py </dev/null
+elif [ "$*" == "-a" ]; then
+	./checkip.sh </dev/null >/dev/null 2>&1 &
+	CHECKIP_PID=`expr $!`
+	
+	cd ./local
+	python2 proxy.py </dev/null >/dev/null 2>&1
+else
+	./checkip.sh </dev/null &
+	CHECKIP_PID=`expr $!`
+	
+	cd ./local
+	python2 proxy.py </dev/null
+fi
 
-cd ./local
-python2 proxy.py <&-
 cd ..
-
 pkill -P $CHECKIP_PID
+echo
