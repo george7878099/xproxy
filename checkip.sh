@@ -12,8 +12,6 @@ do
 	if [ $? -ne 0 ]; then
 		exit;
 	fi
-	cat ip.tmp local/good_ip.txt > allip.tmp;
-	head -$KEEP_IP allip.tmp > local/good_ip.txt;
-	#one ip may appear more than once
-	rm allip.tmp;
+	cat ip.tmp local/good_ip.txt | awk '!a[$0]++' | head -$KEEP_IP > good.tmp;
+	mv good.tmp local/good_ip.txt;
 done;
