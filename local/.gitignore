@@ -1,7 +1,6 @@
 .DS_Store
 *~
 *.pyc
-*.pac
 *.key
 *.crt
 *.pid
