@@ -8,7 +8,7 @@ do
 	rm ip_tmperror.tmp;
 	rm ip_tmpno.tmp;
 	rm ip_tmpok.tmp;
-	python2 ./checkip.py;
+	python ./checkip.py;
 	if [ $? -ne 0 ]; then
 		exit;
 	fi
