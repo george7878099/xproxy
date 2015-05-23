@@ -212,7 +212,7 @@ class CertUtility(object):
         ca = OpenSSL.crypto.X509()
         ca.set_serial_number(0)
         ca.gmtime_adj_notBefore(0)
-        ca.gmtime_adj_notAfter(24 * 60 * 60 * 3652)
+        ca.gmtime_adj_notAfter(24 * 60 * 60 * 1095)
         ca.set_issuer(req.get_subject())
         ca.set_subject(req.get_subject())
         ca.set_pubkey(req.get_pubkey())
@@ -264,7 +264,7 @@ class CertUtility(object):
         except OpenSSL.SSL.Error:
             cert.set_serial_number(int(time.time()*1000))
         cert.gmtime_adj_notBefore(-600) #avoid crt time error warning
-        cert.gmtime_adj_notAfter(60 * 60 * 24 * 3652)
+        cert.gmtime_adj_notAfter(60 * 60 * 24 * 1095)
         cert.set_issuer(ca.get_subject())
         cert.set_subject(req.get_subject())
         cert.set_pubkey(req.get_pubkey())
