@@ -212,7 +212,7 @@ class CertUtility(object):
         ca = OpenSSL.crypto.X509()
         ca.set_serial_number(0)
         ca.gmtime_adj_notBefore(0)
-        ca.gmtime_adj_notAfter(24 * 60 * 60 * 1095)
+        ca.gmtime_adj_notAfter(24 * 60 * 60 * 3652)
         ca.set_issuer(req.get_subject())
         ca.set_subject(req.get_subject())
         ca.set_pubkey(req.get_pubkey())
