@@ -1594,6 +1594,7 @@ class AdvancedNet2(Net2):
         self.ssl_connection_unknown_ipaddrs = {}
         self.ssl_connection_cachesock = False
         self.ssl_connection_keepalive = False
+        self.goodip = []
         self.iplist_alias = {}
         self.fixed_iplist = set([])
         self.host_map = collections.OrderedDict()
@@ -1648,8 +1649,11 @@ class AdvancedNet2(Net2):
             self.dns_cache[hostname] = iplist
         return iplist
 
-    def get_ipaddrs(self):
-        ff=open('good_ip.txt','r+')
+    def get_goodip(self):
+        try:
+            ff=open('good_ip.txt','r+')
+        except:
+            return self.goodip
         cur=""
         lst=[]
         while True:
@@ -1657,6 +1661,7 @@ class AdvancedNet2(Net2):
             if cur=="":
                 break
             lst.append((cur[0:len(cur)-1],443))
+        self.goodip=lst
         ff.close()
         return lst
 
@@ -1750,7 +1755,7 @@ class AdvancedNet2(Net2):
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             queobj = Queue.Queue()
-            addrs=self.get_ipaddrs()
+            addrs=self.get_goodip()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
             for i in range(len(addrs)):
@@ -1990,7 +1995,7 @@ class AdvancedNet2(Net2):
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             queobj = Queue.Queue()
-            addrs=self.get_ipaddrs()
+            addrs=self.get_goodip()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
             errors = []
