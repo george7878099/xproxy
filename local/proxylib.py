@@ -1743,6 +1743,17 @@ class AdvancedNet2(Net2):
                         cache_queue.put((time.time(), sock))
                     else:
                         sock.close()
+        def reorg_ipaddrs():
+            current_time = time.time()
+            for ipaddr, ctime in self.tcp_connection_good_ipaddrs.items():
+                if current_time - ctime > 4 * 60 and len(self.tcp_connection_good_ipaddrs) > 2 * self.max_window and ipaddr[0] not in self.fixed_iplist:
+                    self.tcp_connection_good_ipaddrs.pop(ipaddr, None)
+                    self.tcp_connection_unknown_ipaddrs[ipaddr] = ctime
+            for ipaddr, ctime in self.tcp_connection_bad_ipaddrs.items():
+                if current_time - ctime > 6 * 60:
+                    self.tcp_connection_bad_ipaddrs.pop(ipaddr, None)
+                    self.tcp_connection_unknown_ipaddrs[ipaddr] = ctime
+            logging.info("tcp good_ipaddrs=%d, bad_ipaddrs=%d, unknown_ipaddrs=%d", len(self.tcp_connection_good_ipaddrs), len(self.tcp_connection_bad_ipaddrs), len(self.tcp_connection_unknown_ipaddrs))
         try:
             while cache_key:
                 ctime, sock = self.tcp_connection_cache[cache_key].get_nowait()
@@ -1752,10 +1763,32 @@ class AdvancedNet2(Net2):
                     sock.close()
         except Queue.Empty:
             pass
+        addresses = [(x, port) for x in self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))) or self.gethostsbyname(hostname)]
+        #logging.info('gethostsbyname(%r) return %d addresses', hostname, len(addresses))
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
+            if addresses[0][0]!='127.0.0.1':
+                reorg_ipaddrs()
+                window = self.max_window + i
+                if len(self.ssl_connection_good_ipaddrs) > len(self.ssl_connection_bad_ipaddrs):
+                    window = max(2, window-2)
+                if len(self.tcp_connection_bad_ipaddrs)/2 >= len(self.tcp_connection_good_ipaddrs) <= 1.5 * window:
+                    window += 2
+                good_ipaddrs = [x for x in addresses if x in self.tcp_connection_good_ipaddrs]
+                good_ipaddrs = sorted(good_ipaddrs, key=self.tcp_connection_time.get)[:window]
+                unknown_ipaddrs = [x for x in addresses if x not in self.tcp_connection_good_ipaddrs and x not in self.tcp_connection_bad_ipaddrs]
+                random.shuffle(unknown_ipaddrs)
+                unknown_ipaddrs = unknown_ipaddrs[:window]
+                bad_ipaddrs = [x for x in addresses if x in self.tcp_connection_bad_ipaddrs]
+                bad_ipaddrs = sorted(bad_ipaddrs, key=self.tcp_connection_bad_ipaddrs.get)[:window]
+                addrs = good_ipaddrs + unknown_ipaddrs + bad_ipaddrs
+                remain_window = 3 * window - len(addrs)
+                if 0 < remain_window <= len(addresses):
+                    addrs += random.sample(addresses, remain_window)
+                logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
+            else:
+                addrs=self.get_goodip()
             queobj = Queue.Queue()
-            addrs=self.get_goodip()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
             for i in range(len(addrs)):
@@ -1983,6 +2016,17 @@ class AdvancedNet2(Net2):
                         cache_queue.put((time.time(), sock))
                     else:
                         sock.close()
+        def reorg_ipaddrs():
+            current_time = time.time()
+            for ipaddr, ctime in self.ssl_connection_good_ipaddrs.items():
+                if current_time - ctime > 4 * 60 and len(self.ssl_connection_good_ipaddrs) > 2 * self.max_window and ipaddr[0] not in self.fixed_iplist:
+                    self.ssl_connection_good_ipaddrs.pop(ipaddr, None)
+                    self.ssl_connection_unknown_ipaddrs[ipaddr] = ctime
+            for ipaddr, ctime in self.ssl_connection_bad_ipaddrs.items():
+                if current_time - ctime > 6 * 60:
+                    self.ssl_connection_bad_ipaddrs.pop(ipaddr, None)
+                    self.ssl_connection_unknown_ipaddrs[ipaddr] = ctime
+            logging.info("ssl good_ipaddrs=%d, bad_ipaddrs=%d, unknown_ipaddrs=%d", len(self.ssl_connection_good_ipaddrs), len(self.ssl_connection_bad_ipaddrs), len(self.ssl_connection_unknown_ipaddrs))
         try:
             while cache_key:
                 ctime, sock = self.ssl_connection_cache[cache_key].get_nowait()
@@ -1992,10 +2036,29 @@ class AdvancedNet2(Net2):
                     sock.close()
         except Queue.Empty:
             pass
+        addresses = [(x, port) for x in self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))) or self.gethostsbyname(hostname)]
+        #logging.info('gethostsbyname(%r) return %d addresses', hostname, len(addresses))
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
+            if addresses[0][0]!='127.0.0.1':
+                reorg_ipaddrs()
+                good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
+                bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
+                unknown_ipaddrs = [x for x in addresses if x not in self.ssl_connection_good_ipaddrs and x not in self.ssl_connection_bad_ipaddrs]
+                random.shuffle(unknown_ipaddrs)
+                window = self.max_window + i
+                if len(bad_ipaddrs) < 0.2 * len(good_ipaddrs) and len(good_ipaddrs) > 10:
+                    addrs = good_ipaddrs[:window]
+                    addrs += [random.choice(unknown_ipaddrs)] if unknown_ipaddrs else []
+                elif len(good_ipaddrs) > 2 * window or len(bad_ipaddrs) < 0.5 * len(good_ipaddrs):
+                    addrs = (good_ipaddrs[:window] + unknown_ipaddrs + bad_ipaddrs)[:2*window]
+                else:
+                    addrs = good_ipaddrs[:window] + unknown_ipaddrs[:window] + bad_ipaddrs[:window]
+                    addrs += random.sample(addresses, min(len(addresses), 3*window-len(addrs))) if len(addrs) < 3*window else []
+                logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
+            else:
+                addrs=self.get_goodip()
             queobj = Queue.Queue()
-            addrs=self.get_goodip()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
             errors = []
