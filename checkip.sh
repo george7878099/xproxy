@@ -1,6 +1,6 @@
 #!/bin/bash
 
-KEEP_IP=20
+KEEP_IP=8192
 
 while true;
 do
