@@ -1579,7 +1579,6 @@ class AdvancedNet2(Net2):
         self.dns_servers = dns_servers
         self.dns_blacklist = dns_blacklist
         self.dns_cache = LRUCache(dns_cachesize)
-        self.tcp_connection_first = True
         self.tcp_connection_time = collections.defaultdict(float)
         self.tcp_connection_time_with_clienthello = collections.defaultdict(float)
         self.tcp_connection_cache = collections.defaultdict(Queue.PriorityQueue)
@@ -1588,7 +1587,6 @@ class AdvancedNet2(Net2):
         self.tcp_connection_unknown_ipaddrs = {}
         self.tcp_connection_cachesock = False
         self.tcp_connection_keepalive = False
-        self.ssl_connection_first = True
         self.ssl_connection_time = collections.defaultdict(float)
         self.ssl_connection_cache = collections.defaultdict(Queue.PriorityQueue)
         self.ssl_connection_good_ipaddrs = {}
@@ -1783,9 +1781,7 @@ class AdvancedNet2(Net2):
             good_ipaddrs = [x for x in addresses if x in self.tcp_connection_good_ipaddrs]
             good_ipaddrs = sorted(good_ipaddrs, key=self.tcp_connection_time.get)[:window]
             unknown_ipaddrs = [x for x in addresses if x not in self.tcp_connection_good_ipaddrs and x not in self.tcp_connection_bad_ipaddrs]
-            if self.tcp_connection_first:
-                self.tcp_connection_first=False
-            else:
+            if i!=0:
                 random.shuffle(unknown_ipaddrs)
             unknown_ipaddrs = unknown_ipaddrs[:window]
             bad_ipaddrs = [x for x in addresses if x in self.tcp_connection_bad_ipaddrs]
@@ -2056,9 +2052,7 @@ class AdvancedNet2(Net2):
             good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
             bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
             unknown_ipaddrs = [x for x in addresses if x not in self.ssl_connection_good_ipaddrs and x not in self.ssl_connection_bad_ipaddrs]
-            if self.ssl_connection_first:
-                self.ssl_connection_first=False
-            else:
+            if i!=0:
                 random.shuffle(unknown_ipaddrs)
             window = self.max_window + i
             if len(bad_ipaddrs) < 0.2 * len(good_ipaddrs) and len(good_ipaddrs) > 10:
