@@ -257,7 +257,7 @@ def isgoolgledomain(domain):
 
 def isgoogleserver(svrname):
     lowerdomain = svrname.lower()
-    if lowerdomain == "gws":
+    if lowerdomain == "gws" or lowerdomain[:3] == "gvs":
         return True
     else:
         return False

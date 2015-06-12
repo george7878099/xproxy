@@ -1827,9 +1827,9 @@ class AdvancedNet2(Net2):
                 sock.settimeout(min(self.connect_timeout, timeout))
                 # pick up the certificate
                 if not validate:
-                    ssl_sock = ssl.wrap_socket(sock, ssl_version=self.ssl_version, do_handshake_on_connect=False)
+                    ssl_sock = ssl.wrap_socket(sock, ssl_version=self.ssl_version, ciphers='ECDHE-RSA-AES128-SHA', do_handshake_on_connect=False)
                 else:
-                    ssl_sock = ssl.wrap_socket(sock, ssl_version=self.ssl_version, cert_reqs=ssl.CERT_REQUIRED, ca_certs=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cacert.pem'), do_handshake_on_connect=False)
+                    ssl_sock = ssl.wrap_socket(sock, ssl_version=self.ssl_version, ciphers='ECDHE-RSA-AES128-SHA', cert_reqs=ssl.CERT_REQUIRED, ca_certs=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'cacert.pem'), do_handshake_on_connect=False)
                 ssl_sock.settimeout(min(self.connect_timeout, timeout))
                 # start connection time record
                 start_time = time.time()
