@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # coding:utf-8
 # Based on GAppProxy 2.0.0 by Du XiaoGang <dugang.2008@gmail.com>
 # Based on WallProxy 0.4.0 by Hust Moon <www.ehust@gmail.com>
@@ -540,7 +540,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         # post data
         need_crlf = 0 if common.GAE_MODE == 'https' else 1
         need_validate = common.GAE_VALIDATE
-        cache_key = '%s:%d' % (handler.net2.host_postfix_map['.appspot.com'], 443 if common.GAE_MODE == 'https' else 80)
+        cache_key = '%s:%d' % (handler.net2.host_postfix_map.get('.appspot.com',''), 443 if common.GAE_MODE == 'https' else 80)
         headfirst = bool(common.GAE_HEADFIRST)
         response = handler.net2.create_http_request(request_method, fetchserver, request_headers, body, timeout, crlf=need_crlf, validate=need_validate, cache_key=cache_key, headfirst=headfirst)
         response.app_status = response.status

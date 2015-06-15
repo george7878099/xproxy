@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = 'thanks to moonshawdo@gmail.com'
 """
@@ -61,7 +61,7 @@ else:
     
 
 #最大IP延时，单位毫秒
-g_maxhandletimeout = 4000
+g_maxhandletimeout = 5000
 #最大可用IP数量
 g_maxhandleipcnt = 1
 #检查IP的线程数
@@ -82,6 +82,7 @@ g_tmpnofile = os.path.join(g_filedir, "ip_tmpno.tmp")
 g_tmpokfile = os.path.join(g_filedir, "ip_tmpok.tmp")
 g_tmperrorfile = os.path.join(g_filedir, "ip_tmperror.tmp")
 g_googleipfile = os.path.join(g_filedir,"googleip.tmp")
+g_testipfile = os.path.join(g_filedir,"ip_test.tmp")
 
 
 # gevent socket cnt must less than 1024
@@ -257,7 +258,9 @@ def isgoolgledomain(domain):
 
 def isgoogleserver(svrname):
     lowerdomain = svrname.lower()
-    if lowerdomain == "gws" or lowerdomain[:3] == "gvs":
+    if lowerdomain == "gws":
+        return True
+    elif lowerdomain == "gvs 1.0":
         return True
     else:
         return False
@@ -389,7 +392,7 @@ class TCacheResult(object):
                         continue
                     gwsname = ""
                     if len(ips) > 3:
-                        gwsname = ips[3]
+                        gwsname = " ".join(ips[3:])
                     ipint = from_string(ips[0])
                     # 如果为google ip,每次都需要检查，如果不是，则跳过检查
                     if not checkvalidssldomain(ips[2],gwsname):
@@ -1004,7 +1007,7 @@ def list_ping():
     ip_list.sort()
 
     PRINT('try to collect ssl result,check ip cnt: %d,times:%ds' % (Ping.ipcnt,time.time()-cur_time) )
-    op = 'wb'
+    op = 'w'
     if sys.version_info[0] == 3:
         op = 'w'
     ff = open(g_ipfile, op)
@@ -1015,8 +1018,7 @@ def list_ping():
             break        
         PRINT("[%s] %d ms,domain: %s,svr:%s" % (ip[1], ip[0], domain,ip[3]))
         if domain is not None:
-            ff.write(ip[1])
-            ff.write("\n")
+            ff.write(ip[1]+" "+str(ip[0])+"\n")
             ncount += 1
     PRINT("write to file %s ok,count:%d " % (g_ipfile, ncount))
     ff.close()
@@ -1027,34 +1029,41 @@ def list_ping():
 
 
 def checkip(ip):
-    if g_useOpenSSL == 1:
-        print "use PyOpenSSL to check ",ip
-        sslcontext = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-        sslcontext.set_timeout(30)
-        s = socket.socket()
-        s.connect((ip, 443))
-        c = OpenSSL.SSL.Connection(sslcontext, s)
-        c.set_connect_state()
-        print "%s try to handshake " % ( ip )
-        c.do_handshake()
-        cert = c.get_peer_certificate()
-        print "ssl subject: ",cert.get_subject().get_components()
-        c.shutdown()
-        s.close()
-    elif g_usegevent == 1:
+    ff=open(ip,"r+")
+    ip=ff.readline().strip("\n").strip("\r")
+    ff.close()
+    ip=ip.split(" ")[0]
+    costtime=time.time()
+    try:
         print "use gevent to check ",ip
         s = socket.socket()
-        s.settimeout(10)
+        s.settimeout(5)
         c = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=g_cacertfile)
-        c.settimeout(10)
+        c.settimeout(5)
         print( "try connect to %s" % (ip))
         c.connect((ip, 443))
         cert = c.getpeercert()
+        costtime=int(time.time()*1000-costtime*1000)
         if 'subject' in cert:
             print "ssl subject: ",cert['subject']
+            f_ok=False
+            for i in cert['subject']:
+                if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
+                    f_ok=True
+                    break
+            if f_ok:
+                ff=open(g_testipfile,'w')
+                ff.write(ip+' '+str(costtime)+'\n')
+                ff.close()
+                return
         else:
             print "ssl key: ",cert
         c.close()
+    except:
+        pass
+    ff=open(g_testipfile,'w')
+    ff.write(ip+' 2147483647\n')
+    ff.close()
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:

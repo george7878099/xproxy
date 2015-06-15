@@ -12,6 +12,11 @@ do
 	if [ $? -ne 0 ]; then
 		exit;
 	fi
-	cat ip.tmp local/good_ip.txt | awk '!a[$0]++' | head -$KEEP_IP > good.tmp;
-	mv good.tmp local/good_ip.txt;
+	./local/python27 ./addip.py ip.tmp local/good_ip.txt;
+	rm ip_test.tmp;
+	./local/python27 ./checkip.py local/good_ip.txt;
+	if [ $? -ne 0 ]; then
+		exit;
+	fi
+	./local/python27 ./addip.py ip_test.tmp local/good_ip.txt;
 done;
