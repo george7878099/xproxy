@@ -9,6 +9,8 @@ function setup_win(){
 if [ "$*" == "-p" ]; then
 	./checkip-win.sh </dev/null &
 	CHECKIP_PID=`expr $!`
+	./testip-win.sh </dev/null &
+	TESTIP_PID=`expr $!`
 	
 	cd ./local
 	setup_win
@@ -16,6 +18,8 @@ if [ "$*" == "-p" ]; then
 elif [ "$*" == "-c" ]; then
 	./checkip-win.sh </dev/null >/dev/null 2>&1 &
 	CHECKIP_PID=`expr $!`
+	./testip-win.sh </dev/null >/dev/null 2>&1 &
+	TESTIP_PID=`expr $!`
 	
 	cd ./local
 	setup_win
@@ -23,6 +27,8 @@ elif [ "$*" == "-c" ]; then
 elif [ "$*" == "-a" ]; then
 	./checkip-win.sh </dev/null >/dev/null 2>&1 &
 	CHECKIP_PID=`expr $!`
+	./testip-win.sh </dev/null >/dev/null 2>&1 &
+	TESTIP_PID=`expr $!`
 	
 	cd ./local
 	setup_win
@@ -30,6 +36,8 @@ elif [ "$*" == "-a" ]; then
 else
 	./checkip-win.sh </dev/null &
 	CHECKIP_PID=`expr $!`
+	./testip-win.sh </dev/null &
+	TESTIP_PID=`expr $!`
 	
 	cd ./local
 	setup_win
@@ -38,4 +46,5 @@ fi
 
 cd ..
 pkill -P $CHECKIP_PID
+pkill -P $TESTIP_PID
 echo

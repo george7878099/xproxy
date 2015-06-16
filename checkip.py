@@ -1028,11 +1028,19 @@ def list_ping():
         sort_tmpokfile(nLastOKFileLineCnt)
 
 
-def checkip(ip):
+def checkip(ip,first=True):
     ff=open(ip,"r+")
-    ip=ff.readline().strip("\n").strip("\r")
+    if first:
+        ip=ff.readline().strip("\n").strip("\r")
+    else:
+        iplist=[]
+        for i in ff:
+            iplist.append(i)
+        ip=random.sample(iplist,1)[0].strip("\n").strip("\r")
     ff.close()
     ip=ip.split(" ")[0]
+    if ip=="":
+        return
     costtime=time.time()
     try:
         print "use gevent to check ",ip
@@ -1052,13 +1060,15 @@ def checkip(ip):
                     f_ok=True
                     break
             if f_ok:
-                ff=open(g_testipfile,'w')
+                ff=open(g_testipfile,'a')
                 ff.write(ip+' '+str(costtime)+'\n')
                 ff.close()
                 return
         else:
             print "ssl key: ",cert
         c.close()
+    except KeyboardInterrupt:
+        os._exit(1)
     except:
         pass
     ff=open(g_testipfile,'w')
@@ -1067,6 +1077,12 @@ def checkip(ip):
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        checkip(sys.argv[1])
+        try:
+            checkip(sys.argv[1])
+            checkip(sys.argv[1],False)
+        except KeyboardInterrupt:
+            os._exit(1)
+        except:
+            print traceback.format_exc()
     else:
         list_ping()
