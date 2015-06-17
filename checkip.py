@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = 'thanks to moonshawdo@gmail.com'
 """
@@ -1078,8 +1078,10 @@ def checkip(ip,first=True):
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         try:
-            checkip(sys.argv[1])
-            checkip(sys.argv[1],False)
+            if len(sys.argv)==2:
+                checkip(sys.argv[1])
+            elif len(sys.argv)==3 and sys.argv[1]=="-r":
+                checkip(sys.argv[2],False)
         except KeyboardInterrupt:
             os._exit(1)
         except:
