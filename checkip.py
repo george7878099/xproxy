@@ -8,7 +8,6 @@ __author__ = 'thanks to moonshawdo@gmail.com'
 
 import os
 import sys
-import threading
 import socket
 import ssl
 import re
@@ -46,6 +45,7 @@ if g_usegevent == 1:
         from gevent import sleep
     except ImportError:
         g_usegevent = 0
+import threading
 
 if g_useOpenSSL == 1:
     try:
@@ -1028,6 +1028,22 @@ def list_ping():
         sort_tmpokfile(nLastOKFileLineCnt)
 
 
+def checkconnect(addr):
+    try:
+        s = socket.socket()
+        s.settimeout(2)
+        c = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=g_cacertfile)
+        c.settimeout(2)
+        print( "try connect to %s" % (addr))
+        c.connect((addr, 443))
+        c.close()
+    except KeyboardInterrupt:
+        os._exit(1)
+    except:
+        return False
+    return True
+
+
 def checkip(ip,first=True):
     ff=open(ip,"r+")
     if first:
@@ -1079,9 +1095,11 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         try:
             if len(sys.argv)==2:
-                checkip(sys.argv[1])
+                if checkconnect("baidu.com"):
+                    checkip(sys.argv[1])
             elif len(sys.argv)==3 and sys.argv[1]=="-r":
-                checkip(sys.argv[2],False)
+                if checkconnect("baidu.com"):
+                    checkip(sys.argv[2],False)
         except KeyboardInterrupt:
             os._exit(1)
         except:

@@ -7,7 +7,7 @@ ipset=set([])
 iplist=[]
 
 def add(item):
-    if item[0] not in ipset:
+    if len(item)>=2 and (item[0] not in ipset):
         ipset.add(item[0])
         iplist.append((int(item[1]),item[0]))
 
