@@ -1738,23 +1738,25 @@ class AdvancedNet2(Net2):
                 addresses=self.get_goodip()
             reorg_ipaddrs()
             window = self.max_window + i
-            if len(self.ssl_connection_good_ipaddrs) > len(self.ssl_connection_bad_ipaddrs):
-                window = max(2, window-2)
-            if len(self.tcp_connection_bad_ipaddrs)/2 >= len(self.tcp_connection_good_ipaddrs) <= 1.5 * window:
-                window += 2
-            good_ipaddrs = [x for x in addresses if x in self.tcp_connection_good_ipaddrs]
-            good_ipaddrs = sorted(good_ipaddrs, key=self.tcp_connection_time.get)[:window]
-            unknown_ipaddrs = [x for x in addresses if x not in self.tcp_connection_good_ipaddrs and x not in self.tcp_connection_bad_ipaddrs]
-            if i!=0:
+            if i==0 and f_getip:
+                addrs=addresses[:min(len(addresses),window)]
+            else:
+                if len(self.ssl_connection_good_ipaddrs) > len(self.ssl_connection_bad_ipaddrs):
+                    window = max(2, window-2)
+                if len(self.tcp_connection_bad_ipaddrs)/2 >= len(self.tcp_connection_good_ipaddrs) <= 1.5 * window:
+                    window += 2
+                good_ipaddrs = [x for x in addresses if x in self.tcp_connection_good_ipaddrs]
+                good_ipaddrs = sorted(good_ipaddrs, key=self.tcp_connection_time.get)[:window]
+                unknown_ipaddrs = [x for x in addresses if x not in self.tcp_connection_good_ipaddrs and x not in self.tcp_connection_bad_ipaddrs]
                 random.shuffle(unknown_ipaddrs)
-            unknown_ipaddrs = unknown_ipaddrs[:window]
-            bad_ipaddrs = [x for x in addresses if x in self.tcp_connection_bad_ipaddrs]
-            bad_ipaddrs = sorted(bad_ipaddrs, key=self.tcp_connection_bad_ipaddrs.get)[:window]
-            addrs = good_ipaddrs + unknown_ipaddrs + bad_ipaddrs
-            remain_window = 3 * window - len(addrs)
-            if 0 < remain_window <= len(addresses):
-                addrs += random.sample(addresses, remain_window)
-            logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
+                unknown_ipaddrs = unknown_ipaddrs[:window]
+                bad_ipaddrs = [x for x in addresses if x in self.tcp_connection_bad_ipaddrs]
+                bad_ipaddrs = sorted(bad_ipaddrs, key=self.tcp_connection_bad_ipaddrs.get)[:window]
+                addrs = good_ipaddrs + unknown_ipaddrs + bad_ipaddrs
+                remain_window = 3 * window - len(addrs)
+                if 0 < remain_window <= len(addresses):
+                    addrs += random.sample(addresses, remain_window)
+                logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
             queobj = Queue.Queue()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
@@ -2013,21 +2015,23 @@ class AdvancedNet2(Net2):
             if f_getip:
                 addresses=self.get_goodip()
             reorg_ipaddrs()
-            good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
-            bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
-            unknown_ipaddrs = [x for x in addresses if x not in self.ssl_connection_good_ipaddrs and x not in self.ssl_connection_bad_ipaddrs]
-            if i!=0:
-                random.shuffle(unknown_ipaddrs)
             window = self.max_window + i
-            if len(bad_ipaddrs) < 0.2 * len(good_ipaddrs) and len(good_ipaddrs) > 10:
-                addrs = good_ipaddrs[:window]
-                addrs += [random.choice(unknown_ipaddrs)] if unknown_ipaddrs else []
-            elif len(good_ipaddrs) > 2 * window or len(bad_ipaddrs) < 0.5 * len(good_ipaddrs):
-                addrs = (good_ipaddrs[:window] + unknown_ipaddrs + bad_ipaddrs)[:2*window]
+            if i==0 and f_getip:
+                addrs=addresses[:min(len(addresses),window)]
             else:
-                addrs = good_ipaddrs[:window] + unknown_ipaddrs[:window] + bad_ipaddrs[:window]
-                addrs += random.sample(addresses, min(len(addresses), 3*window-len(addrs))) if len(addrs) < 3*window else []
-            logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
+                good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
+                bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
+                unknown_ipaddrs = [x for x in addresses if x not in self.ssl_connection_good_ipaddrs and x not in self.ssl_connection_bad_ipaddrs]
+                random.shuffle(unknown_ipaddrs)
+                if len(bad_ipaddrs) < 0.2 * len(good_ipaddrs) and len(good_ipaddrs) > 10:
+                    addrs = good_ipaddrs[:window]
+                    addrs += [random.choice(unknown_ipaddrs)] if unknown_ipaddrs else []
+                elif len(good_ipaddrs) > 2 * window or len(bad_ipaddrs) < 0.5 * len(good_ipaddrs):
+                    addrs = (good_ipaddrs[:window] + unknown_ipaddrs + bad_ipaddrs)[:2*window]
+                else:
+                    addrs = good_ipaddrs[:window] + unknown_ipaddrs[:window] + bad_ipaddrs[:window]
+                    addrs += random.sample(addresses, min(len(addresses), 3*window-len(addrs))) if len(addrs) < 3*window else []
+                logging.debug('%s good_ipaddrs=%d, unknown_ipaddrs=%r, bad_ipaddrs=%r', cache_key, len(good_ipaddrs), len(unknown_ipaddrs), len(bad_ipaddrs))
             queobj = Queue.Queue()
             for addr in addrs:
                 thread.start_new_thread(create_connection, (addr, timeout, queobj))
