@@ -22,16 +22,19 @@ def addip(src,dst):
     ff=open(src,"r+")
     for strs in ff:
         add(strs.strip("\n").strip("\r").split(" "))
+    ff.close()
     ff=open(dst,"a+")
     ff.close()
     ff=open(dst,"r+")
     for strs in ff:
         add(strs.strip("\n").strip("\r").split(" "))
     sort()
+    ff.close()
     ff=open(dst,"w")
     iplist=iplist[:min(keep_ip,len(iplist))]
     for i in iplist:
         ff.write(i[1]+" "+str(i[0])+"\n")
+    ff.close()
 
 if len(sys.argv)>2:
     addip(sys.argv[1],sys.argv[2])

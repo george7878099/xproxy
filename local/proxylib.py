@@ -225,9 +225,9 @@ class CertUtility(object):
             fp.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, ca))
             fp.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
 
-    def get_cert_serial_number(self, commonname):
+    def get_cert_serial_number(self, commonname, notBefore):
         assert self.ca_thumbprint
-        saltname = '%s|%s' % (self.ca_thumbprint, commonname)
+        saltname = '%s|%s|%s' % (self.ca_thumbprint, commonname, notBefore)
         return int(hashlib.md5(saltname.encode('utf-8')).hexdigest(), 16)
 
     def _get_cert(self, commonname, sans=()):
@@ -259,12 +259,12 @@ class CertUtility(object):
 
         cert = OpenSSL.crypto.X509()
         cert.set_version(2)
-        try:
-            cert.set_serial_number(self.get_cert_serial_number(commonname))
-        except OpenSSL.SSL.Error:
-            cert.set_serial_number(int(time.time()*1000))
         cert.gmtime_adj_notBefore(-600) #avoid crt time error warning
         cert.gmtime_adj_notAfter(60 * 60 * 24 * 1095)
+        try:
+            cert.set_serial_number(self.get_cert_serial_number(commonname,cert.get_notBefore()))
+        except OpenSSL.SSL.Error:
+            cert.set_serial_number(int(time.time()*1000))
         cert.set_issuer(ca.get_subject())
         cert.set_subject(req.get_subject())
         cert.set_pubkey(req.get_pubkey())
@@ -385,8 +385,10 @@ class CertUtility(object):
             filename = random.choice(certfiles)
             commonname = os.path.splitext(os.path.basename(filename))[0]
             with open(filename, 'rb') as fp:
-                serial_number = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read()).get_serial_number()
-            if serial_number != self.get_cert_serial_number(commonname):
+                certtmp = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, fp.read())
+                serial_number = certtmp.get_serial_number()
+                notBefore = certtmp.get_notBefore()
+            if serial_number != self.get_cert_serial_number(commonname, notBefore):
                 any(os.remove(x) for x in certfiles)
         #Check CA imported
         if self.import_ca(capath) != 0:
