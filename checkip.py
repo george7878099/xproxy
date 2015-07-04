@@ -1034,12 +1034,12 @@ def checkconnect(addr):
         s.settimeout(2)
         c = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=g_cacertfile)
         c.settimeout(2)
-        print( "try connect to %s" % (addr))
         c.connect((addr, 443))
         c.close()
     except KeyboardInterrupt:
         os._exit(1)
     except:
+        print ("testip: network unreachable(cannot connect to %s)" % (addr))
         return False
     return True
 
@@ -1059,34 +1059,28 @@ def checkip(ip,first=True):
         return
     costtime=time.time()
     try:
-        print "use gevent to check ",ip
         s = socket.socket()
         s.settimeout(5)
         c = ssl.wrap_socket(s, cert_reqs=ssl.CERT_REQUIRED, ca_certs=g_cacertfile)
         c.settimeout(5)
-        print( "try connect to %s" % (ip))
+        print( "testip: connecting to %s" % (ip))
         c.connect((ip, 443))
         cert = c.getpeercert()
         costtime=int(time.time()*1000-costtime*1000)
         if 'subject' in cert:
-            print "ssl subject: ",cert['subject']
-            f_ok=False
             for i in cert['subject']:
                 if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-                    f_ok=True
-                    break
-            if f_ok:
-                ff=open(g_testipfile,'a')
-                ff.write(ip+' '+str(costtime)+'\n')
-                ff.close()
-                return
-        else:
-            print "ssl key: ",cert
+                    print("testip: checking %s: ok, %d ms" % (ip,costtime))
+                    ff=open(g_testipfile,'a')
+                    ff.write(ip+' '+str(costtime)+'\n')
+                    ff.close()
+                    return
         c.close()
     except KeyboardInterrupt:
         os._exit(1)
     except:
         pass
+    print("testip: checking %s: failed" % (ip))
     ff=open(g_testipfile,'w')
     ff.write(ip+' 2147483647\n')
     ff.close()
