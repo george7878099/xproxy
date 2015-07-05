@@ -1044,16 +1044,18 @@ def checkconnect(addr):
     return True
 
 
-def checkip(ip,first=True):
+def checkip(ip,cnt=-1):
     ff=open(ip,"r+")
-    if first:
-        ip=ff.readline().strip("\n").strip("\r")
-    else:
-        iplist=[]
-        for i in ff:
-            iplist.append(i)
-        ip=random.sample(iplist,1)[0].strip("\n").strip("\r")
+    iplist=[]
+    cur=0
+    for i in ff:
+        if cnt!=-1:
+            cur+=1
+            if cur>cnt:
+                break
+        iplist.append(i)
     ff.close()
+    ip=random.sample(iplist,1)[0].strip("\n").strip("\r")
     ip=ip.split(" ")[0]
     if ip=="":
         return
@@ -1090,10 +1092,10 @@ if __name__ == '__main__':
         try:
             if len(sys.argv)==2:
                 if checkconnect("baidu.com"):
-                    checkip(sys.argv[1])
-            elif len(sys.argv)==3 and sys.argv[1]=="-r":
+                    checkip(sys.argv[1],1)
+            elif len(sys.argv)==3:
                 if checkconnect("baidu.com"):
-                    checkip(sys.argv[2],False)
+                    checkip(sys.argv[1],int(sys.argv[2]))
         except KeyboardInterrupt:
             os._exit(1)
         except:

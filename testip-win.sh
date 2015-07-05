@@ -5,9 +5,9 @@ while true;
 do
 	rm ip_test.tmp;
 	if [ $random -eq 0 ]; then
-		./local/python27 ./checkip.py local/good_ip.txt;
+		./local/python27 ./checkip.py local/good_ip.txt 7;
 	else
-		./local/python27 ./checkip.py -r local/good_ip.txt;
+		./local/python27 ./checkip.py local/good_ip.txt -1;
 	fi
 	if [ $? -ne 0 ]; then
 		exit;
