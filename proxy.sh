@@ -1,3 +1,5 @@
 #!/bin/bash
 
-cd ./local && python proxy.py
+cd local
+python ./proxy.py
+cd ..

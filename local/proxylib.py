@@ -1625,8 +1625,9 @@ class AdvancedNet2(Net2):
             cur=ff.readline()
             if cur=="":
                 break
-            cur=cur.strip("\n").strip("\r").split(" ")[0]
-            lst.append((cur,443))
+            cur=cur.strip("\n").strip("\r").split(" ")
+            if (len(cur)==1) or (len(cur)>=2 and cur[1]!="2147483647"):
+            	lst.append((cur[0],443))
         self.goodip=lst
         ff.close()
         return lst
