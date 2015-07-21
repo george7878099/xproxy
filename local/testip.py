@@ -17,8 +17,8 @@ sys.path.append(os.path.dirname(__file__) or '.')
 import addip
 
 g_filedir = os.path.dirname(__file__)
-g_testipfile = os.path.join(g_filedir,"local/good_ip.txt")
-g_cacertfile = os.path.join(g_filedir, "local/cacert.pem")
+g_testipfile = os.path.join(g_filedir,"good_ip.txt")
+g_cacertfile = os.path.join(g_filedir, "cacert.pem")
 
 # Re-add sslwrap to Python 2.7.9
 import inspect
@@ -56,7 +56,8 @@ def checkconnect(addr):
 		c.connect((addr, 443))
 		c.close()
 	except KeyboardInterrupt:
-		os._exit(1)
+		addip.stop=True
+		return False
 	except:
 		return False
 	return True
@@ -75,7 +76,7 @@ def testipall():
 		while(True):
 			time.sleep(10000)
 	except KeyboardInterrupt:
-		os._exit(1)
+		addip.stop=True
 
 lock=threading.Lock()
 checklst=set([])
@@ -147,7 +148,7 @@ def testip(mode):
 				else:
 					lock.release()
 		except KeyboardInterrupt:
-			os._exit(1)
+			addip.stop=True
 		except:
 			pass
 		if ipvalid:
@@ -161,6 +162,6 @@ if __name__ == '__main__':
 	try:
 		testipall()
 	except KeyboardInterrupt:
-		os._exit(1)
+		addip.stop=True
 	except:
 		print traceback.format_exc()

@@ -1616,18 +1616,25 @@ class AdvancedNet2(Net2):
 
     def get_goodip(self):
         try:
-            ff=open('good_ip.txt','r+')
+            ff=open("good_ip.txt","r")
         except:
             return self.goodip
         cur=""
         lst=[]
+        hasokip=False
         while True:
             cur=ff.readline()
             if cur=="":
                 break
             cur=cur.strip("\n").strip("\r").split(" ")
             if (len(cur)==1) or (len(cur)>=2 and cur[1]!="2147483647"):
-            	lst.append((cur[0],443))
+                lst.append((cur[0],443))
+                hasokip=True
+            elif len(cur)>=2:
+                if not hasokip:
+                    lst.append((cur[0],443))
+                else:
+                    break
         self.goodip=lst
         ff.close()
         return lst

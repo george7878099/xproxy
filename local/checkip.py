@@ -11,7 +11,6 @@ import traceback
 import logging
 import random
 import time
-
 import threading
 
 sys.path.append(os.path.dirname(__file__) or '.')
@@ -19,7 +18,7 @@ import addip
 
 g_filedir = os.path.dirname(__file__)
 g_checkipfile = os.path.join(g_filedir,"ip.txt")
-g_cacertfile = os.path.join(g_filedir, "local/cacert.pem")
+g_cacertfile = os.path.join(g_filedir, "cacert.pem")
 
 # Re-add sslwrap to Python 2.7.9
 import inspect
@@ -112,7 +111,7 @@ def checkipall():
 		while(True):
 			time.sleep(10000)
 	except KeyboardInterrupt:
-		os._exit(1)
+		addip.stop=True
 
 lock=threading.Lock()
 checklst=set([])
@@ -170,7 +169,8 @@ def checkip():
 			else:
 				lock.release()
 		except KeyboardInterrupt:
-			os._exit(1)
+			addip.stop=True
+			return
 		except:
 			pass
 		if ipvalid:
@@ -182,6 +182,6 @@ if __name__ == '__main__':
 	try:
 		checkipall()
 	except KeyboardInterrupt:
-		os._exit(1)
+		addip.stop=True
 	except:
 		print traceback.format_exc()

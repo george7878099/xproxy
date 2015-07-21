@@ -1,3 +1,5 @@
 @echo off
 
-start .\local\python27 .\start.py
+cd local
+start .\python27 .\start.py
+cd ..
