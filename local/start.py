@@ -30,8 +30,9 @@ except:
 
 addip.stop=True
 try:
-	p.terminate()
+	p.kill()
 except:
 	pass
 
-time.sleep(0.5)
+time.sleep(1)
+os._exit(0)
