@@ -11,12 +11,12 @@ import checkip
 import testip
 
 def start():
-	t=threading.Thread(target=checkip.checkipall)
-	t.setDaemon(True)
-	t.start()
-	t=threading.Thread(target=testip.testipall)
-	t.setDaemon(True)
-	t.start()
+	t1=threading.Thread(target=checkip.checkipall)
+	t1.setDaemon(True)
+	t1.start()
+	t2=threading.Thread(target=testip.testipall)
+	t2.setDaemon(True)
+	t2.start()
 
 	while(True):
 		time.sleep(10000)
