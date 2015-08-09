@@ -81,82 +81,90 @@ def testipall():
 lock=threading.Lock()
 checklst=set([])
 
-def testip(mode):
+def testipwork(mode):
 	global lock,checklst
-	while(True):
-		try:
-			ipvalid=False
-			iperror=True
-			ip=""
-			with open(g_testipfile,"r") as f:
-				if mode<=7:
-					for i in range(mode):
-						tmpline=f.readline()
-						if tmpline!="":ip=tmpline
-						else:break
-				else:
-					lst=[]
-					for i in f:
-						lst.append(i)
-					if len(lst)==0:ip=""
-					else:ip=random.choice(lst)
-			ip=ip.strip('\n').strip('\r').split(' ')[0]
-			if ip!="":
-				lock.acquire()
-				isin=ip in checklst
-				if not isin:
-					checklst.add(ip)
-					lock.release()
-					ipvalid=True
-					time.sleep(5)	#reduce the frequency
-					while(time.time()<addip.sleep_before):
-						if(addip.sleep_before-time.time()>300):addip.sleep_before=0
-						time.sleep(5)
-					addip.sleep_before=0
-					while(not checkconnect("baidu.com")):
-						time.sleep(1)
-					costtime=time.time()
-					s=socket.socket(socket.AF_INET)
-					s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-					s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-					s.settimeout(5)
-					c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
-					c.settimeout(5)
-					c.connect((ip, 443))
-					costtime=int(time.time()*1000-costtime*1000)
-					cert = c.getpeercert()
-					if 'subject' in cert:
-						for i in cert['subject']:
-							if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-								c.send("HEAD / HTTP/1.1\r\nAccept: */*\r\nHost: %s\r\n\r\n" % ip)
-								response=httplib.HTTPResponse(c,buffering=True)
-								response.begin()
-								if "gws" in response.msg.dict["server"]:
-									iperror=False
-									addip.addip(ip,costtime)
-								elif "google.com/sorry/" in response.msg.dict["location"]:
-									iperror=False
-									addip.sleeplock.acquire()
-									if addip.sleep_before==0:
-										addip.printlock.acquire()
-										print "iptool sleeps for 300 secs"
-										addip.printlock.release()
-									addip.sleep_before=time.time()+300
-									addip.sleeplock.release()
-								break
-					c.close()
-				else:
-					lock.release()
-		except KeyboardInterrupt:
-			addip.stop=True
-		except:
-			pass
-		if ipvalid:
-			if iperror:
-				addip.addip(ip,2147483647)
+	ipvalid=False
+	try:
+		time.sleep(0.01)
+		iperror=True
+		ip=""
+		with open(g_testipfile,"r") as f:
+			if mode<=7:
+				for i in range(mode):
+					tmpline=f.readline()
+					if tmpline!="":ip=tmpline
+					else:break
+			else:
+				lst=[]
+				for i in f:
+					lst.append(i)
+				if len(lst)==0:ip=""
+				else:ip=random.choice(lst)
+		ip=ip.strip('\n').strip('\r').split(' ')[0]
+		if ip!="":
 			lock.acquire()
-			checklst.remove(ip)
-			lock.release()
+			isin=ip in checklst
+			if not isin:
+				checklst.add(ip)
+				lock.release()
+				ipvalid=True
+				time.sleep(5)	#reduce the frequency
+				while(time.time()<addip.sleep_before):
+					if(addip.sleep_before-time.time()>300):addip.sleep_before=0
+					time.sleep(5)
+				addip.sleep_before=0
+				while(not checkconnect("baidu.com")):
+					time.sleep(1)
+				costtime=time.time()
+				s=socket.socket(socket.AF_INET)
+				s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+				s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
+				s.settimeout(5)
+				c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
+				c.settimeout(5)
+				c.connect((ip, 443))
+				costtime=int(time.time()*1000-costtime*1000)
+				cert = c.getpeercert()
+				if 'subject' in cert:
+					for i in cert['subject']:
+						if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
+							c.send("HEAD / HTTP/1.1\r\nAccept: */*\r\nHost: %s\r\n\r\n" % ip)
+							response=httplib.HTTPResponse(c,buffering=True)
+							response.begin()
+							if "gws" in response.msg.dict["server"]:
+								iperror=False
+								addip.addip(ip,costtime)
+							elif "google.com/sorry/" in response.msg.dict["location"]:
+								iperror=False
+								addip.sleeplock.acquire()
+								if addip.sleep_before==0:
+									addip.printlock.acquire()
+									print "iptool sleeps for 300 secs"
+									addip.printlock.release()
+								addip.sleep_before=time.time()+300
+								addip.sleeplock.release()
+							break
+				c.close()
+			else:
+				lock.release()
+	except KeyboardInterrupt:
+		addip.stop=True
+		return
+	except:
+		pass
+	if ipvalid:
+		if iperror:
+			addip.addip(ip,2147483647)
+		lock.acquire()
+		checklst.remove(ip)
+		lock.release()
+
+def testip(mode):
+	try:
+		while(True):
+			testipwork(mode)
+	except KeyboardInterrupt:
+		addip.stop=True
 
 if __name__ == '__main__':
 	try:

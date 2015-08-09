@@ -4,6 +4,7 @@ import os
 import platform
 import subprocess
 import sys
+import sysconfig
 import time
 import threading
 
@@ -12,7 +13,18 @@ if platform.system().lower()=="windows":
 else:
 	python="python"
 
-sys.path.append(os.path.dirname(__file__) or '.')
+try:
+	import gevent.monkey
+	gevent.monkey.patch_socket()
+except:
+	reload(sys).setdefaultencoding('UTF-8')
+	sys.dont_write_bytecode = True
+	sys.path = [(os.path.dirname(__file__) or '.') + '/packages.egg/noarch'] + sys.path + [(os.path.dirname(__file__) or '.') + '/packages.egg/' + sysconfig.get_platform().split('-')[0]]
+	
+	try:
+	    __import__('gevent.monkey', fromlist=['.']).patch_all()
+	except (ImportError, SystemError):
+	    sys.exit(sys.stderr.write('please install python-gevent\n'))
 
 import addip
 import iptool
