@@ -29,6 +29,10 @@ except:
 import addip
 import iptool
 
+if (not os.path.exists("good_ip.txt")) and os.path.exists("good_ip_tmp.tmp"):
+	print "xproxy didn't exit normally, restoring ip list..."
+	os.rename("good_ip_tmp.tmp","good_ip.txt")
+
 t=threading.Thread(target=iptool.start)
 t.setDaemon(True)
 t.start()

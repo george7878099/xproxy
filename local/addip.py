@@ -4,10 +4,12 @@ import os
 import sys
 import thread
 import threading
+import time
 import traceback
 
 keep_ip=8192
 dst="good_ip.txt"
+tmpdst="good_ip_tmp.tmp"
 lock=threading.Lock()
 
 sleeplock=threading.Lock()
@@ -46,14 +48,12 @@ def addip(ip,costtime):
 		iplist=iplist[:min(keep_ip,len(iplist))]
 		if stop:
 			thread.exit()
-		try:ff=open(dst,"w")
-		except:pass
-		try:
-			for i in iplist:
-				try:ff.write(i[1]+" "+str(i[0])+"\n")
-				except:pass
-		except:pass
+		ff=open(tmpdst,"w")
+		for i in iplist:
+			ff.write(i[1]+" "+str(i[0])+"\n")
 		ff.close()
+		os.remove(dst)
+		os.rename(tmpdst,dst)
 	except KeyboardInterrupt:
 		stop=True
 		thread.exit()
