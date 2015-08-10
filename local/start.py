@@ -15,7 +15,7 @@ else:
 
 try:
 	import gevent.monkey
-	gevent.monkey.patch_socket()
+	gevent.monkey.patch_all()
 except:
 	reload(sys).setdefaultencoding('UTF-8')
 	sys.dont_write_bytecode = True
