@@ -7,12 +7,9 @@ import sys
 import os
 import sysconfig
 
-try:
-	import gevent
-except:
-	sys.path += [os.path.abspath(os.path.join(__file__, '../packages.egg/%s' % x)) for x in ('noarch', sysconfig.get_platform().split('-')[0])]
-	import gevent
+sys.path += [os.path.abspath(os.path.join(__file__, '../packages.egg/%s' % x)) for x in ('noarch', sysconfig.get_platform().split('-')[0])]
 
+import gevent
 import gevent.server
 import gevent.timeout
 import gevent.monkey

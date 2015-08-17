@@ -58,18 +58,14 @@ import os
 import sys
 import sysconfig
 
+reload(sys).setdefaultencoding('UTF-8')
+sys.dont_write_bytecode = True
+sys.path = [(os.path.dirname(__file__) or '.') + '/packages.egg/noarch'] + sys.path + [(os.path.dirname(__file__) or '.') + '/packages.egg/' + sysconfig.get_platform().split('-')[0]]
+
 try:
-	import gevent.monkey
-	gevent.monkey.patch_all()
-except:
-	reload(sys).setdefaultencoding('UTF-8')
-	sys.dont_write_bytecode = True
-	sys.path = [(os.path.dirname(__file__) or '.') + '/packages.egg/noarch'] + sys.path + [(os.path.dirname(__file__) or '.') + '/packages.egg/' + sysconfig.get_platform().split('-')[0]]
-	
-	try:
-	    __import__('gevent.monkey', fromlist=['.']).patch_all()
-	except (ImportError, SystemError):
-	    sys.exit(sys.stderr.write('please install python-gevent\n'))
+    __import__('gevent.monkey', fromlist=['.']).patch_all()
+except (ImportError, SystemError):
+    sys.exit(sys.stderr.write('please install python-gevent\n'))
 
 import base64
 import collections

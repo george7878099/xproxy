@@ -97,19 +97,34 @@ def getiplist():
 			lst+=parseiprange(i)
 	return lst
 
-maxthreadcnt=128
+defaultthreadcnt=128
+maxthreadcnt=defaultthreadcnt
 iplist=[]
 
+threadcnt=0
+threadcnt_lock=threading.Lock()
+
 def checkipall():
-	global iplist,maxthreadcnt
+	global iplist,defaultthreadcnt,maxthreadcnt,threadcnt,threadcnt_lock
 	try:
 		iplist=getiplist()
-		for i in range(maxthreadcnt):
-			t=threading.Thread(target=checkip)
-			t.setDaemon(True)
-			t.start()
 		while(True):
-			time.sleep(10000)
+			time.sleep(2)
+			try:
+				with open("checkip_threads","r") as f:
+					maxthreadcnt=int(f.readline())
+			except KeyboardInterrupt:
+				addip.stop=True
+				while(True):time.sleep(10000)
+			except:
+				maxthreadcnt=defaultthreadcnt
+			while threadcnt<maxthreadcnt:
+				threadcnt_lock.acquire()
+				threadcnt+=1
+				threadcnt_lock.release()
+				t=threading.Thread(target=checkip)
+				t.setDaemon(True)
+				t.start()
 	except KeyboardInterrupt:
 		addip.stop=True
 
@@ -179,8 +194,15 @@ def checkipwork():
 		lock.release()
 
 def checkip():
+	global maxthreadcnt,threadcnt,threadcnt_lock
 	try:
 		while(True):
+			threadcnt_lock.acquire()
+			if threadcnt>maxthreadcnt:
+				threadcnt-=1
+				threadcnt_lock.release()
+				return
+			threadcnt_lock.release()
 			checkipwork()
 	except KeyboardInterrupt:
 		addip.stop=True
