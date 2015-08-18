@@ -51,8 +51,10 @@ def checkconnect(addr):
 		s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
 		s.settimeout(2)
-		s.connect((addr, 80))
-		s.close()
+		c = ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile)
+		c.settimeout(2)
+		c.connect((addr, 443))
+		c.close()
 	except KeyboardInterrupt:
 		addip.stop=True
 		return False
