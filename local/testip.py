@@ -51,10 +51,8 @@ def checkconnect(addr):
 		s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
 		s.settimeout(2)
-		c = ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile)
-		c.settimeout(2)
-		c.connect((addr, 443))
-		c.close()
+		s.connect((addr, 80))
+		s.close()
 	except KeyboardInterrupt:
 		addip.stop=True
 		return False
@@ -154,7 +152,8 @@ def testipwork(mode):
 		pass
 	if ipvalid:
 		if iperror:
-			addip.addip(ip,2147483647)
+			if checkconnect("baidu.com"):
+				addip.addip(ip,2147483647)
 		lock.acquire()
 		checklst.remove(ip)
 		lock.release()
