@@ -52,7 +52,15 @@ def addip(ip,costtime):
 		for i in iplist:
 			ff.write(i[1]+" "+str(i[0])+"\n")
 		ff.close()
-		os.remove(dst)
+		begin_time=time.time()
+		while True:
+			try:
+				os.remove(dst)
+			except OSError:
+				cur_time=time.time()
+				if cur_time>=begin_time and cur_time-begin_time<=2:
+					continue
+			break
 		os.rename(tmpdst,dst)
 	except KeyboardInterrupt:
 		stop=True
