@@ -232,8 +232,11 @@ class CertUtility(object):
 
     def get_cert_serial_number(self, commonname, notBefore):
         assert self.ca_thumbprint
-        saltname = '%s|%s|%s' % (self.ca_thumbprint, commonname, notBefore)
-        return int(hashlib.md5(saltname.encode('utf-8')).hexdigest(), 16)
+        saltname = '%s|%s' % (self.ca_thumbprint, commonname)
+        n=int(hashlib.md5(saltname.encode('utf-8')).hexdigest(), 16)
+        n^=n&0xffffffffffff
+        n|=int(notBefore[:14])
+        return n
 
     def _get_cert(self, commonname, sans=()):
         with open(self.ca_keyfile, 'rb') as fp:
