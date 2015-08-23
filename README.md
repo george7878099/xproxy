@@ -1,5 +1,5 @@
-## Xproxy
-* A proxy based on GoAgent and Checkgoogleip
+## xproxy
+* A proxy based on goagent and checkgoogleip
 
 ## Linux
 1. Requirements: python2.7.9 gevent-openssl(python) dnslib(python) pygeoip(python)
