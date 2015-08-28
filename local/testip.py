@@ -15,6 +15,7 @@ import threading
 
 sys.path.append(os.path.dirname(__file__) or '.')
 import addip
+import iptool
 
 g_filedir = os.path.dirname(__file__)
 g_testipfile = os.path.join(g_filedir,"good_ip.txt")
@@ -73,7 +74,7 @@ def testipall():
 			t=threading.Thread(target=testip,args=(8,))
 			t.setDaemon(True)
 			t.start()
-		while(True):
+		while True:
 			time.sleep(10000)
 	except KeyboardInterrupt:
 		addip.stop=True
@@ -109,19 +110,19 @@ def testipwork(mode):
 				lock.release()
 				ipvalid=True
 				time.sleep(5)	#reduce the frequency
-				while(time.time()<addip.sleep_before):
+				while time.time()<addip.sleep_before:
 					if(addip.sleep_before-time.time()>300):addip.sleep_before=0
 					time.sleep(5)
 				addip.sleep_before=0
-				while(not checkconnect("baidu.com")):
+				while (not checkconnect("baidu.com")):
 					time.sleep(1)
 				costtime=time.time()
 				s=socket.socket(socket.AF_INET)
 				s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 				s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-				s.settimeout(5)
+				s.settimeout(iptool.testip_timeout)
 				c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
-				c.settimeout(5)
+				c.settimeout(iptool.testip_timeout)
 				c.connect((ip, 443))
 				costtime=int(time.time()*1000-costtime*1000)
 				cert = c.getpeercert()
@@ -162,15 +163,8 @@ def testipwork(mode):
 
 def testip(mode):
 	try:
-		while(True):
+		while True:
+			while iptool.testip_enable==0:time.sleep(2)
 			testipwork(mode)
 	except KeyboardInterrupt:
 		addip.stop=True
-
-if __name__ == '__main__':
-	try:
-		testipall()
-	except KeyboardInterrupt:
-		addip.stop=True
-	except:
-		print traceback.format_exc()

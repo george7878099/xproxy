@@ -15,6 +15,7 @@ import threading
 
 sys.path.append(os.path.dirname(__file__) or '.')
 import addip
+import iptool
 
 g_filedir = os.path.dirname(__file__)
 g_checkipfile = os.path.join(g_filedir,"ip.txt")
@@ -97,28 +98,18 @@ def getiplist():
 			lst+=parseiprange(i)
 	return lst
 
-defaultthreadcnt=128
-maxthreadcnt=defaultthreadcnt
 iplist=[]
 
 threadcnt=0
 threadcnt_lock=threading.Lock()
 
 def checkipall():
-	global iplist,defaultthreadcnt,maxthreadcnt,threadcnt,threadcnt_lock
+	global iplist,threadcnt,threadcnt_lock
 	try:
 		iplist=getiplist()
-		while(True):
+		while True:
 			time.sleep(2)
-			try:
-				with open("checkip_threads","r") as f:
-					maxthreadcnt=int(f.readline())
-			except KeyboardInterrupt:
-				addip.stop=True
-				while(True):time.sleep(10000)
-			except:
-				maxthreadcnt=defaultthreadcnt
-			while threadcnt<maxthreadcnt:
+			while threadcnt<iptool.checkip_threads:
 				threadcnt_lock.acquire()
 				threadcnt+=1
 				threadcnt_lock.release()
@@ -145,7 +136,7 @@ def checkipwork():
 			checklst.add(ip)
 			lock.release()
 			ipvalid=True
-			while(time.time()<addip.sleep_before):
+			while time.time()<addip.sleep_before:
 				if(addip.sleep_before-time.time()>300):addip.sleep_before=0
 				time.sleep(5)
 			addip.sleep_before=0
@@ -153,9 +144,9 @@ def checkipwork():
 			s=socket.socket(socket.AF_INET)
 			s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 			s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-			s.settimeout(5)
+			s.settimeout(iptool.checkip_timeout)
 			c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
-			c.settimeout(5)
+			c.settimeout(iptool.checkip_timeout)
 			c.connect((ip, 443))
 			costtime=int(time.time()*1000-costtime*1000)
 			cert = c.getpeercert()
@@ -194,11 +185,11 @@ def checkipwork():
 		lock.release()
 
 def checkip():
-	global maxthreadcnt,threadcnt,threadcnt_lock
+	global threadcnt,threadcnt_lock
 	try:
-		while(True):
+		while True:
 			threadcnt_lock.acquire()
-			if threadcnt>maxthreadcnt:
+			if threadcnt>iptool.checkip_threads:
 				threadcnt-=1
 				threadcnt_lock.release()
 				return
@@ -206,11 +197,3 @@ def checkip():
 			checkipwork()
 	except KeyboardInterrupt:
 		addip.stop=True
-
-if __name__ == '__main__':
-	try:
-		checkipall()
-	except KeyboardInterrupt:
-		addip.stop=True
-	except:
-		print traceback.format_exc()
