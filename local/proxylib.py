@@ -1290,7 +1290,7 @@ class ForceHttpsFilter(BaseProxyHandlerFilter):
 
     def filter(self, handler):
         if handler.command != 'CONNECT' and handler.host.endswith(self.forcehttps_sites) and handler.host not in self.noforcehttps_sites:
-            if not handler.headers.get('Referer', '').startswith('https://') and not handler.path.startswith('https://'):
+            if not handler.path.startswith('https://'):
                 logging.debug('ForceHttpsFilter metched %r %r', handler.path, handler.headers)
                 headers = {'Location': handler.path.replace('http://', 'https://', 1), 'Content-Length': '0'}
                 return 'mock', {'status': 301, 'headers': headers, 'body': ''}
@@ -1622,30 +1622,35 @@ class AdvancedNet2(Net2):
             self.dns_cache[hostname] = iplist
         return iplist
 
-    def get_goodip(self):
+    def get_goodip(self,port):
         try:
             ff=open("good_ip.txt","r")
-        except:
-            return self.goodip
-        cur=""
-        lst=[]
-        hasokip=False
-        while True:
-            cur=ff.readline()
-            if cur=="":
-                break
-            cur=cur.strip("\n").strip("\r").split(" ")
-            if (len(cur)==1) or (len(cur)>=2 and cur[1]!="2147483647"):
-                lst.append((cur[0],443))
-                hasokip=True
-            elif len(cur)>=2:
-                if not hasokip:
-                    lst.append((cur[0],443))
-                else:
+            cur=""
+            lst=[]
+            hasokip=False
+            while True:
+                cur=ff.readline()
+                if cur=="":
                     break
-        self.goodip=lst
-        ff.close()
-        return lst
+                cur=cur.strip("\n").strip("\r").split(" ")
+                if (len(cur)==1) or (len(cur)>=2 and cur[1]!="2147483647"):
+                    lst.append(cur[0])
+                    hasokip=True
+                elif len(cur)>=2:
+                    if not hasokip:
+                        lst.append(cur[0])
+                    else:
+                        break
+            self.goodip=lst
+            ff.close()
+        except IOError:
+            try:
+                ff.close()
+            except UnboundLocalError:
+                pass
+            lst=self.goodip
+        ret=[(x,port) for x in lst]
+        return ret
 
     def create_tcp_connection(self, hostname, port, timeout, **kwargs):
         client_hello = kwargs.get('client_hello', None)
@@ -1753,7 +1758,7 @@ class AdvancedNet2(Net2):
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             if f_getip:
-                addresses=self.get_goodip()
+                addresses=self.get_goodip(port)
             reorg_ipaddrs()
             window = self.max_window + i
             if i==0 and f_getip:
@@ -2031,7 +2036,7 @@ class AdvancedNet2(Net2):
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             if f_getip:
-                addresses=self.get_goodip()
+                addresses=self.get_goodip(port)
             reorg_ipaddrs()
             window = self.max_window + i
             if i==0 and f_getip:
