@@ -51,9 +51,9 @@ def checkconnect(addr):
 		s=socket.socket(socket.AF_INET)
 		s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-		s.settimeout(2)
+		s.settimeout(iptool.testip_checkconn_timeout)
 		c = ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile)
-		c.settimeout(2)
+		c.settimeout(iptool.testip_checkconn_timeout)
 		c.connect((addr, 443))
 		c.close()
 	except KeyboardInterrupt:
@@ -114,7 +114,7 @@ def testipwork(mode):
 					if(addip.sleep_before-time.time()>300):addip.sleep_before=0
 					time.sleep(5)
 				addip.sleep_before=0
-				while (not checkconnect("baidu.com")):
+				while (not checkconnect(iptool.testip_checkconn_addr)):
 					time.sleep(1)
 				costtime=time.time()
 				s=socket.socket(socket.AF_INET)
@@ -155,7 +155,7 @@ def testipwork(mode):
 		pass
 	if ipvalid:
 		if iperror:
-			if checkconnect("baidu.com"):
+			if checkconnect(iptool.testip_checkconn_addr):
 				addip.addip(ip,2147483647)
 		lock.acquire()
 		checklst.remove(ip)
