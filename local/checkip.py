@@ -137,7 +137,7 @@ def checkipwork():
 			lock.release()
 			ipvalid=True
 			while time.time()<addip.sleep_before:
-				if(addip.sleep_before-time.time()>300):addip.sleep_before=0
+				if(addip.sleep_before-time.time()>iptool.iptool_sleep_time):addip.sleep_before=0
 				time.sleep(5)
 			addip.sleep_before=0
 			costtime=time.time()
@@ -166,9 +166,9 @@ def checkipwork():
 							addip.sleeplock.acquire()
 							if addip.sleep_before==0:
 								addip.printlock.acquire()
-								print "iptool sleeps for 300 secs"
+								print ("iptool sleeps for %d secs" % iptool.iptool_sleep_time)
 								addip.printlock.release()
-							addip.sleep_before=time.time()+300
+							addip.sleep_before=time.time()+iptool.iptool_sleep_time
 							addip.sleeplock.release()
 						break
 			c.close()

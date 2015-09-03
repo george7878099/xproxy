@@ -63,24 +63,36 @@ def checkconnect(addr):
 		return False
 	return True
 
+threadcnt=0
+threadcnt_lock=threading.Lock()
+
 def testipall():
+	global threadcnt,threadcnt_lock
 	try:
 		for i in range(1,8):
-			for j in range(1):
-				t=threading.Thread(target=testip,args=(i,))
-				t.setDaemon(True)
-				t.start()
-		for i in range(8):
-			t=threading.Thread(target=testip,args=(8,))
+			t=threading.Thread(target=testip,args=(i,))
 			t.setDaemon(True)
 			t.start()
 		while True:
-			time.sleep(10000)
+			while threadcnt<iptool.testip_threads:
+				threadcnt_lock.acquire()
+				threadcnt+=1
+				threadcnt_lock.release()
+				t=threading.Thread(target=testip,args=(0,))
+				t.setDaemon(True)
+				t.start()
+			time.sleep(2)
 	except KeyboardInterrupt:
 		addip.stop=True
 
 lock=threading.Lock()
 checklst=set([])
+
+def testipsleep():
+	i=0
+	while i<iptool.testip_interval:
+		time.sleep(1)
+		i+=1
 
 def testipwork(mode):
 	global lock,checklst
@@ -90,7 +102,7 @@ def testipwork(mode):
 		iperror=True
 		ip=""
 		with open(g_testipfile,"r") as f:
-			if mode<=7:
+			if mode>0:
 				for i in range(mode):
 					tmpline=f.readline()
 					if tmpline!="":ip=tmpline
@@ -109,9 +121,9 @@ def testipwork(mode):
 				checklst.add(ip)
 				lock.release()
 				ipvalid=True
-				time.sleep(5)	#reduce the frequency
+				testipsleep()
 				while time.time()<addip.sleep_before:
-					if(addip.sleep_before-time.time()>300):addip.sleep_before=0
+					if(addip.sleep_before-time.time()>iptool.iptool_sleep_time):addip.sleep_before=0
 					time.sleep(5)
 				addip.sleep_before=0
 				while (not checkconnect(iptool.testip_checkconn_addr)):
@@ -140,14 +152,15 @@ def testipwork(mode):
 								addip.sleeplock.acquire()
 								if addip.sleep_before==0:
 									addip.printlock.acquire()
-									print "iptool sleeps for 300 secs"
+									print ("iptool sleeps for %d secs" % iptool.iptool_sleep_time)
 									addip.printlock.release()
-								addip.sleep_before=time.time()+300
+								addip.sleep_before=time.time()+iptool.iptool_sleep_time
 								addip.sleeplock.release()
 							break
 				c.close()
 			else:
 				lock.release()
+				time.sleep(1)
 	except KeyboardInterrupt:
 		addip.stop=True
 		return
@@ -162,9 +175,18 @@ def testipwork(mode):
 		lock.release()
 
 def testip(mode):
+	global threadcnt,threadcnt_lock
 	try:
 		while True:
-			while iptool.testip_enable==0:time.sleep(2)
+			if mode>0:
+				while iptool.testip_special==0:time.sleep(2)
+			else:
+				threadcnt_lock.acquire()
+				if threadcnt>iptool.testip_threads:
+					threadcnt-=1
+					threadcnt_lock.release()
+					return
+				threadcnt_lock.release()
 			testipwork(mode)
 	except KeyboardInterrupt:
 		addip.stop=True

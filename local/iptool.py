@@ -11,43 +11,58 @@ import addip
 import checkip
 import testip
 
+iptool_sleep_time=300
 checkip_threads=128
 checkip_timeout=5
-testip_enable=1
+testip_special=1
+testip_threads=10
 testip_timeout=5
+testip_interval=5
 testip_checkconn_addr="baidu.com"
 testip_checkconn_timeout=2
 
 def read_config():
-	global checkip_threads,checkip_timeout,testip_enable,testip_timeout,testip_checkconn_addr,testip_checkconn_timeout
+	global iptool_sleep_time,checkip_threads,checkip_timeout,testip_special,testip_threads,testip_timeout,testip_interval,testip_checkconn_addr,testip_checkconn_timeout
 	conf=ConfigParser.ConfigParser()
 	try:
 		conf.read("iptool.ini")
+		iptool_sleep_time_tmp=conf.getint("iptool","sleep_time")
 		checkip_threads_tmp=conf.getint("checkip","threads")
 		checkip_timeout_tmp=conf.getint("checkip","timeout")
-		testip_enable_tmp=conf.getint("testip","enable")
+		testip_special_tmp=conf.getint("testip","special")
+		testip_threads_tmp=conf.getint("testip","threads")
 		testip_timeout_tmp=conf.getint("testip","timeout")
+		testip_interval_tmp=conf.getint("testip","interval")
 		testip_checkconn_addr_tmp=conf.get("testip","checkconn_addr")
 		testip_checkconn_timeout_tmp=conf.getint("testip","checkconn_timeout")
 	except KeyboardInterrupt:
 		addip.stop=True
+		iptool_sleep_time_tmp=300
 		checkip_threads_tmp=0
 		checkip_timeout_tmp=5
-		testip_enable_tmp=0
+		testip_special_tmp=0
+		testip_threads_tmp=0
 		testip_timeout_tmp=5
+		testip_interval_tmp=5
 		testip_checkconn_addr_tmp="baidu.com"
 		testip_checkconn_timeout_tmp=2
 	except:
+		iptool_sleep_time_tmp=300
 		checkip_threads_tmp=128
 		checkip_timeout_tmp=5
-		testip_enable_tmp=1
+		testip_special_tmp=1
+		testip_threads_tmp=10
 		testip_timeout_tmp=5
+		testip_interval_tmp=5
 		testip_checkconn_addr_tmp="baidu.com"
 		testip_checkconn_timeout_tmp=2
+	iptool_sleep_time=iptool_sleep_time_tmp
 	checkip_threads=checkip_threads_tmp
 	checkip_timeout=checkip_timeout_tmp
-	testip_enable=testip_enable_tmp
+	testip_special=testip_special_tmp
+	testip_threads=testip_threads_tmp
 	testip_timeout=testip_timeout_tmp
+	testip_interval=testip_interval_tmp
 	testip_checkconn_addr=testip_checkconn_addr_tmp
 	testip_checkconn_timeout=testip_checkconn_timeout_tmp
 
