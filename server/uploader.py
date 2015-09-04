@@ -14,6 +14,8 @@ def println(s, file=sys.stderr):
 try:
     socket.create_connection(('127.0.0.1', 8087), timeout=1).close()
     os.environ['HTTPS_PROXY'] = '127.0.0.1:8087'
+    if os.path.exists((os.path.dirname(__file__) or '.')+'/../local/CA.crt'):
+        os.environ['SSL_CERT_FILE']=(os.path.dirname(__file__) or '.')+'/../local/CA.crt'
 except socket.error:
     println(u'警告：建议先启动 goagent 客户端或者 VPN 然后再上传，如果您的 VPN 已经打开的话，请按回车键继续。')
     raw_input()
