@@ -1627,20 +1627,12 @@ class AdvancedNet2(Net2):
             ff=open("good_ip.txt","r")
             cur=""
             lst=[]
-            hasokip=False
             while True:
                 cur=ff.readline()
                 if cur=="":
                     break
                 cur=cur.strip("\n").strip("\r").split(" ")
-                if (len(cur)==1) or (len(cur)>=2 and cur[1]!="2147483647"):
-                    lst.append(cur[0])
-                    hasokip=True
-                elif len(cur)>=2:
-                    if not hasokip:
-                        lst.append(cur[0])
-                    else:
-                        break
+                lst.append(cur[0])
             self.goodip=lst
             ff.close()
         except IOError:
