@@ -21,11 +21,11 @@ printlock=threading.Lock()
 
 stop=False
 
-def addtolist(item,iplist,ipset):
+def addtolist(item,iplist,ipset,count):
 	global dst,lock,stop
 	try:
 		if len(item)>=2 and (item[0] not in ipset):
-			iplist.append((int(item[1]),item[0]))
+			iplist.append((int(item[1]),count,item[0]))
 			ipset.add(item[0])
 	except KeyboardInterrupt:
 		stop=True
@@ -38,14 +38,17 @@ def addip(ip,costtime):
 		thread.exit()
 	ipset=set([])
 	iplist=[]
-	addtolist([ip,str(costtime)],iplist,ipset)
+	count=0
+	addtolist([ip,str(costtime)],iplist,ipset,count)
+	count+=1
 	lock.acquire()
 	try:
 		ff=open(dst,"a")
 		ff.close()
 		ff=open(dst,"r")
 		for strs in ff:
-			addtolist(strs.strip("\n").strip("\r").split(" "),iplist,ipset)
+			addtolist(strs.strip("\n").strip("\r").split(" "),iplist,ipset,count)
+			count+=1
 		ff.close()
 		iplist.sort()
 		iplist=iplist[:min(iptool.addip_keep_ip,len(iplist))]
@@ -53,7 +56,7 @@ def addip(ip,costtime):
 			thread.exit()
 		ff=open(tmpdst,"w")
 		for i in iplist:
-			ff.write(i[1]+" "+str(i[0])+"\n")
+			ff.write(i[2]+" "+str(i[0])+"\n")
 		ff.close()
 		begin_time=time.time()
 		while True:

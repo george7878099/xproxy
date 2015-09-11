@@ -113,7 +113,13 @@ def testipwork(mode):
 					lst.append(i)
 				if len(lst)==0:ip=""
 				else:ip=random.choice(lst)
-		ip=ip.strip('\n').strip('\r').split(' ')[0]
+		ip_split=ip.strip('\n').strip('\r').split(' ')
+		try:
+			if len(ip_split)>1 and int(ip_split[1])==2147483647:
+				iperror=False
+		except ValueError:
+			pass
+		ip=ip_split[0]
 		if ip!="":
 			lock.acquire()
 			isin=ip in checklst
