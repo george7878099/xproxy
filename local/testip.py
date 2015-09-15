@@ -48,6 +48,8 @@ if not hasattr(_ssl, 'sslwrap'):
 
 def checkconnect(addr):
 	try:
+		if iptool.testip_checkconn_timeout<0:
+			return True
 		s=socket.socket(socket.AF_INET)
 		s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
