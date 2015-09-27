@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 import os
 import platform
@@ -11,7 +11,7 @@ import threading
 if platform.system().lower()=="windows":
 	python="python27"
 else:
-	python="python"
+	python="python2"
 
 reload(sys).setdefaultencoding('UTF-8')
 sys.dont_write_bytecode = True

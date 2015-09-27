@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # coding:utf-8
 
 __version__ = '1.1'
@@ -338,8 +338,13 @@ class CertUtility(object):
             import platform
             platform_distname = platform.dist()[0]
             if (platform_distname == 'Ubuntu') or (platform_distname == 'debian'):
-                new_certfile = "/usr/local/share/ca-certificates/%s.crt" % commonname
-                return os.system('cp "%s" "%s" && update-ca-certificates' % (certfile, new_certfile))
+                new_certpath = "/usr/local/share/ca-certificates"
+                new_certfile = "%s/%s.crt" % (new_certpath, commonname)
+                return os.system('mkdir -p "%s" && cp "%s" "%s" && update-ca-certificates' % (new_certpath, certfile, new_certfile))
+            elif any(os.path.isfile('%s/trust' % x) for x in os.environ['PATH'].split(os.pathsep)):
+                new_certpath = "/etc/ca-certificates/trust-source/anchors"
+                new_certfile = "%s/%s.crt" % (new_certpath, commonname)
+                return os.system('mkdir -p "%s" && cp "%s" "%s" && trust extract-compat' % (new_certpath, certfile, new_certfile))
             elif any(os.path.isfile('%s/certutil' % x) for x in os.environ['PATH'].split(os.pathsep)):
                 os.system('certutil -d sql:$HOME/.pki/nssdb -D -n "%s"' % (commonname))
                 return os.system('certutil -d sql:$HOME/.pki/nssdb -A -t "C,," -n "%s" -i "%s"' % (commonname, certfile))

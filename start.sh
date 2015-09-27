@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd local
-python ./start.py
+python2 ./start.py
 cd ..

@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd local
-python ./proxy.py
+python2 ./proxy.py
 cd ..

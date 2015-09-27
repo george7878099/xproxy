@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # coding:utf-8
 
 import sys
@@ -96,7 +96,7 @@ if __name__ == '__main__':
     println(u'''\
 ===============================================================
  GoAgent服务端部署程序, 开始上传 gae 应用文件夹
- Linux/Mac 用户, 请使用 python uploader.py 来上传应用
+ Linux/Mac 用户, 请使用 python2 uploader.py 来上传应用
 ===============================================================
 
 请输入您的appid, 多个appid请用|号隔开
