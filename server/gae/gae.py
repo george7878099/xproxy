@@ -121,7 +121,8 @@ def application(environ, start_response):
 
     options = environ.get('HTTP_X_URLFETCH_OPTIONS', '')
     if 'rc4' in options and not __password__:
-        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, message_html('400 Bad Request', 'Bad Request (options) - please set __password__ in gae.py', 'please set __password__ and upload gae.py again'))
+        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('400 Bad Request', 'Bad Request (options) - please set __password__ in gae.py', 'please set __password__ and upload gae.py again')
         raise StopIteration
 
     try:
@@ -144,7 +145,8 @@ def application(environ, start_response):
             headers[key.title()] = value.strip()
     except (zlib.error, KeyError, ValueError):
         import traceback
-        yield format_response(500, {'Content-Type': 'text/html; charset=utf-8'}, message_html('500 Internal Server Error', 'Bad Request (payload) - Possible Wrong Password', '<pre>%s</pre>' % traceback.format_exc()))
+        yield format_response(500, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('500 Internal Server Error', 'Bad Request (payload) - Possible Wrong Password', '<pre>%s</pre>' % traceback.format_exc())
         raise StopIteration
 
     kwargs = {}
@@ -159,26 +161,31 @@ def application(environ, start_response):
     logging.info('%s "%s %s %s" - -', environ['REMOTE_ADDR'], method, url, 'HTTP/1.1')
 
     if __password__ and __password__ != kwargs.get('password', ''):
-        yield format_response(403, {'Content-Type': 'text/html; charset=utf-8'}, message_html('403 Wrong password', 'Wrong password(%r)' % kwargs.get('password', ''), 'GoAgent proxy.ini password is wrong!'))
+        yield format_response(403, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('403 Wrong password', 'Wrong password(%r)' % kwargs.get('password', ''), 'GoAgent proxy.ini password is wrong!')
         raise StopIteration
 
     netloc = urlparse.urlparse(url).netloc
 
     if __hostsdeny__ and netloc.endswith(__hostsdeny__):
-        yield format_response(403, {'Content-Type': 'text/html; charset=utf-8'}, message_html('403 Hosts Deny', 'Hosts Deny(%r)' % netloc, detail='url=%r' % url))
+        yield format_response(403, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('403 Hosts Deny', 'Hosts Deny(%r)' % netloc, detail='url=%r' % url)
         raise StopIteration
 
     if len(url) > MAX_URL_LENGTH:
-        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, message_html('400 Bad Request', 'length of URL too long(greater than %r)' % MAX_URL_LENGTH, detail='url=%r' % url))
+        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('400 Bad Request', 'length of URL too long(greater than %r)' % MAX_URL_LENGTH, detail='url=%r' % url)
         raise StopIteration
 
     if netloc.startswith(('127.0.0.', '::1', 'localhost')):
-        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, message_html('GoAgent %s is Running' % __version__, 'Now you can visit some websites', ''.join('<a href="https://%s/">%s</a><br/>' % (x, x) for x in ('google.com', 'mail.google.com'))))
+        yield format_response(400, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('GoAgent %s is Running' % __version__, 'Now you can visit some websites', ''.join('<a href="https://%s/">%s</a><br/>' % (x, x) for x in ('google.com', 'mail.google.com')))
         raise StopIteration
 
     fetchmethod = getattr(urlfetch, method, None)
     if not fetchmethod:
-        yield format_response(405, {'Content-Type': 'text/html; charset=utf-8'}, message_html('405 Method Not Allowed', 'Method Not Allowed: %r' % method, detail='Method Not Allowed URL=%r' % url))
+        yield format_response(405, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('405 Method Not Allowed', 'Method Not Allowed: %r' % method, detail='Method Not Allowed URL=%r' % url)
         raise StopIteration
 
     timeout = int(kwargs.get('timeout', URLFETCH_TIMEOUT))
@@ -228,7 +235,8 @@ def application(environ, start_response):
         if not error_string:
             logurl = 'https://appengine.google.com/logs?&app_id=%s' % os.environ['APPLICATION_ID']
             error_string = 'Internal Server Error. <p/>try <a href="javascript:window.location.reload(true);">refresh</a> or goto <a href="%s" target="_blank">appengine.google.com</a> for details' % logurl
-        yield format_response(502, {'Content-Type': 'text/html; charset=utf-8'}, message_html('502 Urlfetch Error', 'Python Urlfetch Error: %r' % method, error_string))
+        yield format_response(502, {'Content-Type': 'text/html; charset=utf-8'}, '')
+        yield message_html('502 Urlfetch Error', 'Python Urlfetch Error: %r' % method, error_string)
         raise StopIteration
 
     #logging.debug('url=%r response.status_code=%r response.headers=%r response.content[:1024]=%r', url, response.status_code, dict(response.headers), response.content[:1024])
