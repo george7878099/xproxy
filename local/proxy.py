@@ -429,10 +429,10 @@ class GAEFetchPlugin(BaseFetchPlugin):
                     break
                 else:
                     if response.app_status == 503:
-                        # appid over qouta, switch to next appid
+                        # appid over quota, switch to next appid
                         if len(self.appids) > 1:
                             self.appids.append(self.appids.pop(0))
-                            logging.info('gae over qouta, switch next appid=%r', self.appids[0])
+                            logging.info('gae over quota, switch to next appid=%r', self.appids[0])
                     elif i < self.max_retry - 1 and len(self.appids) > 1:
                         self.appids.append(self.appids.pop(0))
                         logging.info('URLFETCH return %d, trying next appid=%r', response.app_status, self.appids[0])
@@ -514,7 +514,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         payload += ''.join('X-URLFETCH-%s: %s\r\n' % (k, v) for k, v in kwargs.items() if v)
         # prepare GAE request
         request_method = 'POST'
-        fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
+        fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
         fetchserver = kwargs.get('fetchserver') or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
         request_headers = {}
         if common.GAE_OBFUSCATE:
