@@ -1,6 +1,7 @@
 #!/usr/bin/env python2
 
 import ConfigParser
+import copy
 import os
 import sys
 import threading
@@ -11,65 +12,74 @@ import addip
 import checkip
 import testip
 
-iptool_sleep_time=300
-addip_keep_ip=8192
-checkip_threads=128
-checkip_timeout=5
-testip_special=1
-testip_threads=10
-testip_timeout=5
-testip_interval=5
-testip_checkconn_addr="baidu.com"
-testip_checkconn_timeout=2
+config_lock=threading.Lock()
+
+iptool_config={("iptool","sleep_time"):0,
+               ("addip","keep_ip"):8192,
+               ("checkip","threads"):0,
+               ("checkip","timeout"):1,
+               ("checkip","interval"):0,
+               ("testip","special"):0,
+               ("testip","threads"):0,
+               ("testip","timeout"):1,
+               ("testip","interval"):1,
+               ("testip","checkconn_addr"):"baidu.com",
+               ("testip","checkconn_timeout"):2}
+
+def set_config(x):
+	global iptool_config,config_lock
+	config_lock.acquire()
+	iptool_config=copy.deepcopy(x)
+	config_lock.release()
+
+def get_config(a=None,b=None):
+	global iptool_config,config_lock
+	if a==None and b==None:
+		config_lock.acquire()
+		ret=copy.deepcopy(iptool_config)
+		config_lock.release()
+	else:
+		config_lock.acquire()
+		ret=copy.deepcopy(iptool_config[(a,b)])
+		config_lock.release()
+	return ret
 
 def read_config():
-	global iptool_sleep_time,addip_keep_ip,checkip_threads,checkip_timeout,testip_special,testip_threads,testip_timeout,testip_interval,testip_checkconn_addr,testip_checkconn_timeout
 	conf=ConfigParser.ConfigParser()
 	try:
 		conf.read("iptool.ini")
-		iptool_sleep_time_tmp=conf.getint("iptool","sleep_time")
-		addip_keep_ip_tmp=conf.getint("addip","keep_ip")
-		checkip_threads_tmp=conf.getint("checkip","threads")
-		checkip_timeout_tmp=conf.getint("checkip","timeout")
-		testip_special_tmp=conf.getint("testip","special")
-		testip_threads_tmp=conf.getint("testip","threads")
-		testip_timeout_tmp=conf.getint("testip","timeout")
-		testip_interval_tmp=conf.getint("testip","interval")
-		testip_checkconn_addr_tmp=conf.get("testip","checkconn_addr")
-		testip_checkconn_timeout_tmp=conf.getint("testip","checkconn_timeout")
+		iptool_config_tmp={}
+		for i in get_config():
+			try:
+				iptool_config_tmp[i]=conf.getint(i[0],i[1])
+			except:
+				iptool_config_tmp[i]=conf.get(i[0],i[1])
+		set_config(iptool_config_tmp)
 	except KeyboardInterrupt:
 		addip.stop=True
-		iptool_sleep_time_tmp=300
-		addip_keep_ip_tmp=8192
-		checkip_threads_tmp=0
-		checkip_timeout_tmp=5
-		testip_special_tmp=0
-		testip_threads_tmp=0
-		testip_timeout_tmp=5
-		testip_interval_tmp=5
-		testip_checkconn_addr_tmp="baidu.com"
-		testip_checkconn_timeout_tmp=2
+		set_config({("iptool","sleep_time"):300,
+		            ("addip","keep_ip"):8192,
+		            ("checkip","threads"):0,
+		            ("checkip","timeout"):5,
+		            ("checkip","interval"):0,
+		            ("testip","special"):0,
+		            ("testip","threads"):0,
+		            ("testip","timeout"):5,
+		            ("testip","interval"):5,
+		            ("testip","checkconn_addr"):"baidu.com",
+		            ("testip","checkconn_timeout"):2})
 	except:
-		iptool_sleep_time_tmp=300
-		addip_keep_ip_tmp=8192
-		checkip_threads_tmp=128
-		checkip_timeout_tmp=5
-		testip_special_tmp=1
-		testip_threads_tmp=10
-		testip_timeout_tmp=5
-		testip_interval_tmp=5
-		testip_checkconn_addr_tmp="baidu.com"
-		testip_checkconn_timeout_tmp=2
-	iptool_sleep_time=iptool_sleep_time_tmp
-	addip_keep_ip=addip_keep_ip_tmp
-	checkip_threads=checkip_threads_tmp
-	checkip_timeout=checkip_timeout_tmp
-	testip_special=testip_special_tmp
-	testip_threads=testip_threads_tmp
-	testip_timeout=testip_timeout_tmp
-	testip_interval=testip_interval_tmp
-	testip_checkconn_addr=testip_checkconn_addr_tmp
-	testip_checkconn_timeout=testip_checkconn_timeout_tmp
+		set_config({("iptool","sleep_time"):300,
+		            ("addip","keep_ip"):8192,
+		            ("checkip","threads"):128,
+		            ("checkip","timeout"):5,
+		            ("checkip","interval"):0,
+		            ("testip","special"):1,
+		            ("testip","threads"):10,
+		            ("testip","timeout"):5,
+		            ("testip","interval"):5,
+		            ("testip","checkconn_addr"):"baidu.com",
+		            ("testip","checkconn_timeout"):2})
 
 def start():
 	read_config()

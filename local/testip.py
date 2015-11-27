@@ -48,14 +48,14 @@ if not hasattr(_ssl, 'sslwrap'):
 
 def checkconnect(addr):
 	try:
-		if iptool.testip_checkconn_timeout<0:
+		if iptool.get_config("testip","checkconn_timeout")<0:
 			return True
 		s=socket.socket(socket.AF_INET)
 		s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 		s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-		s.settimeout(iptool.testip_checkconn_timeout)
+		s.settimeout(iptool.get_config("testip","checkconn_timeout"))
 		c = ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile)
-		c.settimeout(iptool.testip_checkconn_timeout)
+		c.settimeout(iptool.get_config("testip","checkconn_timeout"))
 		c.connect((addr, 443))
 		c.close()
 	except KeyboardInterrupt:
@@ -76,7 +76,7 @@ def testipall():
 			t.setDaemon(True)
 			t.start()
 		while True:
-			while threadcnt<iptool.testip_threads:
+			while threadcnt<iptool.get_config("testip","threads"):
 				threadcnt_lock.acquire()
 				threadcnt+=1
 				threadcnt_lock.release()
@@ -92,7 +92,7 @@ checklst=set([])
 
 def testipsleep():
 	i=0
-	while i<iptool.testip_interval:
+	while i<iptool.get_config("testip","interval"):
 		time.sleep(1)
 		i+=1
 
@@ -129,20 +129,19 @@ def testipwork(mode):
 				checklst.add(ip)
 				lock.release()
 				ipvalid=True
-				testipsleep()
 				while time.time()<addip.sleep_before:
-					if(addip.sleep_before-time.time()>iptool.iptool_sleep_time):addip.sleep_before=0
+					if(addip.sleep_before-time.time()>iptool.get_config("iptool","sleep_time")):addip.sleep_before=0
 					time.sleep(5)
 				addip.sleep_before=0
-				while (not checkconnect(iptool.testip_checkconn_addr)):
+				while (not checkconnect(iptool.get_config("testip","checkconn_addr"))):
 					time.sleep(1)
 				costtime=time.time()
 				s=socket.socket(socket.AF_INET)
 				s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
 				s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-				s.settimeout(iptool.testip_timeout)
+				s.settimeout(iptool.get_config("testip","timeout"))
 				c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
-				c.settimeout(iptool.testip_timeout)
+				c.settimeout(iptool.get_config("testip","timeout"))
 				c.connect((ip, 443))
 				costtime=int(time.time()*1000-costtime*1000)
 				cert = c.getpeercert()
@@ -160,9 +159,9 @@ def testipwork(mode):
 								addip.sleeplock.acquire()
 								if addip.sleep_before==0:
 									addip.printlock.acquire()
-									print ("iptool sleeps for %d secs" % iptool.iptool_sleep_time)
+									print ("iptool sleeps for %d secs" % iptool.get_config("iptool","sleep_time"))
 									addip.printlock.release()
-								addip.sleep_before=time.time()+iptool.iptool_sleep_time
+								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
 								addip.sleeplock.release()
 							break
 				c.close()
@@ -176,8 +175,9 @@ def testipwork(mode):
 		pass
 	if ipvalid:
 		if iperror:
-			if checkconnect(iptool.testip_checkconn_addr):
+			if checkconnect(iptool.get_config("testip","checkconn_addr")):
 				addip.addip(ip,2147483647)
+		testipsleep()
 		lock.acquire()
 		checklst.remove(ip)
 		lock.release()
@@ -187,10 +187,10 @@ def testip(mode):
 	try:
 		while True:
 			if mode>0:
-				while iptool.testip_special==0:time.sleep(2)
+				while iptool.get_config("testip","special")==0:time.sleep(2)
 			else:
 				threadcnt_lock.acquire()
-				if threadcnt>iptool.testip_threads:
+				if threadcnt>iptool.get_config("testip","threads"):
 					threadcnt-=1
 					threadcnt_lock.release()
 					return
