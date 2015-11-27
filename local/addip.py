@@ -48,7 +48,7 @@ def addip(ip,costtime):
 			addtolist(strs.strip("\n").strip("\r").split(" "),iplist,ipset)
 		ff.close()
 		iplist.sort()
-		iplist=iplist[:min(iptool.addip_keep_ip,len(iplist))]
+		iplist=iplist[:min(iptool.get_config("addip","keep_ip"),len(iplist))]
 		if stop:
 			thread.exit()
 		ff=open(tmpdst,"w")
