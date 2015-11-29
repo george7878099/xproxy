@@ -109,13 +109,17 @@ def checkipall():
 		iplist=getiplist()
 		while True:
 			time.sleep(2)
-			while threadcnt<iptool.get_config("checkip","threads"):
+			while True:
 				threadcnt_lock.acquire()
-				threadcnt+=1
-				threadcnt_lock.release()
-				t=threading.Thread(target=checkip)
-				t.setDaemon(True)
-				t.start()
+				if threadcnt<iptool.get_config("checkip","threads"):
+					threadcnt+=1
+					threadcnt_lock.release()
+					t=threading.Thread(target=checkip)
+					t.setDaemon(True)
+					t.start()
+				else:
+					threadcnt_lock.release()
+					break
 	except KeyboardInterrupt:
 		addip.stop=True
 
@@ -204,3 +208,8 @@ def checkip():
 			checkipwork()
 	except KeyboardInterrupt:
 		addip.stop=True
+	except:
+		print traceback.format_exc()
+		threadcnt_lock.acquire()
+		threadcnt-=1
+		threadcnt_lock.release()

@@ -26,6 +26,8 @@ iptool_config={("iptool","sleep_time"):0,
                ("testip","checkconn_addr"):"baidu.com",
                ("testip","checkconn_timeout"):2}
 
+iptool_config_strings=set([("testip","checkconn_addr")])
+
 def set_config(x):
 	global iptool_config,config_lock
 	config_lock.acquire()
@@ -45,14 +47,15 @@ def get_config(a=None,b=None):
 	return ret
 
 def read_config():
+	global iptool_config_strings
 	conf=ConfigParser.ConfigParser()
 	try:
 		conf.read("iptool.ini")
 		iptool_config_tmp={}
 		for i in get_config():
-			try:
+			if (i[0],i[1]) not in iptool_config_strings:
 				iptool_config_tmp[i]=conf.getint(i[0],i[1])
-			except:
+			else:
 				iptool_config_tmp[i]=conf.get(i[0],i[1])
 		set_config(iptool_config_tmp)
 	except KeyboardInterrupt:
@@ -74,7 +77,7 @@ def read_config():
 		            ("checkip","threads"):128,
 		            ("checkip","timeout"):5,
 		            ("checkip","interval"):0,
-		            ("testip","special"):1,
+		            ("testip","special"):7,
 		            ("testip","threads"):10,
 		            ("testip","timeout"):5,
 		            ("testip","interval"):5,

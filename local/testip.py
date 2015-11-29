@@ -65,24 +65,36 @@ def checkconnect(addr):
 		return False
 	return True
 
+special=set([])
+special_lock=threading.Lock()
 threadcnt=0
 threadcnt_lock=threading.Lock()
 
 def testipall():
-	global threadcnt,threadcnt_lock
+	global special,special_lock,threadcnt,threadcnt_lock
 	try:
-		for i in range(1,8):
-			t=threading.Thread(target=testip,args=(i,))
-			t.setDaemon(True)
-			t.start()
 		while True:
-			while threadcnt<iptool.get_config("testip","threads"):
+			for i in range(1,iptool.get_config("testip","special")+1):
+				special_lock.acquire()
+				if i not in special:
+					special.add(i)
+					special_lock.release()
+					t=threading.Thread(target=testip,args=(i,))
+					t.setDaemon(True)
+					t.start()
+				else:
+					special_lock.release()
+			while True:
 				threadcnt_lock.acquire()
-				threadcnt+=1
-				threadcnt_lock.release()
-				t=threading.Thread(target=testip,args=(0,))
-				t.setDaemon(True)
-				t.start()
+				if threadcnt<iptool.get_config("testip","threads"):
+					threadcnt+=1
+					threadcnt_lock.release()
+					t=threading.Thread(target=testip,args=(0,))
+					t.setDaemon(True)
+					t.start()
+				else:
+					threadcnt_lock.release()
+					break
 			time.sleep(2)
 	except KeyboardInterrupt:
 		addip.stop=True
@@ -183,11 +195,15 @@ def testipwork(mode):
 		lock.release()
 
 def testip(mode):
-	global threadcnt,threadcnt_lock
+	global special,special_lock,threadcnt,threadcnt_lock
 	try:
 		while True:
 			if mode>0:
-				while iptool.get_config("testip","special")==0:time.sleep(2)
+				if mode>iptool.get_config("testip","special"):
+					special_lock.acquire()
+					special.remove(mode)
+					special_lock.release()
+					return
 			else:
 				threadcnt_lock.acquire()
 				if threadcnt>iptool.get_config("testip","threads"):
@@ -198,3 +214,13 @@ def testip(mode):
 			testipwork(mode)
 	except KeyboardInterrupt:
 		addip.stop=True
+	except:
+		print traceback.format_exc()
+		if mode>0:
+			special_lock.acquire()
+			special.remove(mode)
+			special_lock.release()
+		else:
+			threadcnt_lock.acquire()
+			threadcnt-=1
+			threadcnt_lock.release()
