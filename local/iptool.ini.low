@@ -1,0 +1,21 @@
+[iptool]
+sleep_time = 300
+
+[addip]
+keep_ip = 8192
+
+[checkip]
+threads = 32
+timeout = 5
+interval = 8
+
+[testip]
+special = 5
+; testip uses these threads to test the first [special] IPs
+threads = 10
+; threads except the special ones
+timeout = 10
+interval = 300
+checkconn_addr = baidu.com
+; must support https to ensure an authentic website
+checkconn_timeout = 5

@@ -13,6 +13,9 @@
 2. start.bat.
 3. Make sure the certificate(local/CA.crt) is installed.
 
+## Notes
+* You can replace iptool.ini and proxy.ini with iptool.ini.low and proxy.ini.low on some low-performance devices.
+
 ## Links
 * https://github.com/goagent/goagent
 * https://github.com/moonshawdo/checkgoogleip
