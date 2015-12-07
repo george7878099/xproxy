@@ -436,7 +436,8 @@ class GAEFetchPlugin(BaseFetchPlugin):
                     elif i < self.max_retry - 1 and len(self.appids) > 1:
                         self.appids.append(self.appids.pop(0))
                         logging.info('URLFETCH return %d, trying next appid=%r', response.app_status, self.appids[0])
-                    response.close()
+                    if i < self.max_retry - 1:
+                        response.close()
             except Exception as e:
                 errors.append(e)
                 logging.info('GAE "%s %s" appid=%r %r, retry...', handler.command, handler.path, self.appids[0], e)
