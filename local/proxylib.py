@@ -1548,7 +1548,7 @@ class Net2(object):
 
 class AdvancedNet2(Net2):
     """getaliasbyname/gethostsbyname/create_tcp_connection/create_ssl_connection/create_http_request"""
-    def __init__(self, window=4, connect_timeout=6, timeout=8, ssl_version='TLSv1', dns_servers=['8.8.8.8', '114.114.114.114'], dns_blacklist=[], dns_cachesize=64*1024):
+    def __init__(self, window=4, connect_timeout=16, timeout=18, ssl_version='TLSv1', dns_servers=['8.8.8.8', '114.114.114.114'], dns_blacklist=[], dns_cachesize=64*1024):
         self.max_window = window
         self.connect_timeout = connect_timeout
         self.timeout = timeout
