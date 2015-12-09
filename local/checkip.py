@@ -163,11 +163,10 @@ def checkipwork():
 			if 'subject' in cert:
 				for i in cert['subject']:
 					if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-						c.send("HEAD / HTTP/1.1\r\nAccept: */*\r\nHost: %s\r\n\r\n" % ip)
+						c.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
 						response=httplib.HTTPResponse(c,buffering=True)
 						response.begin()
-						server=response.msg.dict["server"]
-						if "gws" in server:
+						if "Google Frontend" in response.msg.dict["server"]:
 							addip.addip(ip,costtime)
 							addip.printlock.acquire()
 							print("found ip %s, %d ms" % (ip,costtime))
