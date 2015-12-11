@@ -510,6 +510,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
             kwargs['options'] = self.options
         if self.validate:
             kwargs['validate'] = self.validate
+        kwargs['maxsize'] = RangeFetch.maxsize
         payload = '%s %s %s\r\n' % (method, url, handler.request_version)
         payload += ''.join('%s: %s\r\n' % (k, v) for k, v in headers.items() if k not in handler.net2.skip_headers)
         payload += ''.join('X-URLFETCH-%s: %s\r\n' % (k, v) for k, v in kwargs.items() if v)
