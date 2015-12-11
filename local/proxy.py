@@ -323,7 +323,7 @@ class RangeFetch(object):
                     fetchserver = ''
                     if not response:
                         fetchserver = random.choice(self.fetchservers)
-                        if self._last_app_status.get(fetchserver, 200) >= 500:
+                        if self._last_app_status.get(fetchserver, 200) >= 500 and self._last_app_status.get(fetchserver, 200) != 503:
                             time.sleep(5)
                         response = self.plugin.fetch(self.handler, self.handler.command, self.url, headers, self.handler.body, timeout=self.handler.net2.connect_timeout, fetchserver=fetchserver, **self.kwargs)
                 except Queue.Empty:
