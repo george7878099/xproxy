@@ -1749,17 +1749,17 @@ class AdvancedNet2(Net2):
             pass
         addresses = [(x, port) for x in self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))) or self.gethostsbyname(hostname)]
         #logging.info('gethostsbyname(%r) return %d addresses', hostname, len(addresses))
-        f_getip=False
-        if addresses[0][0]=='127.0.0.1':
-            f_getip=True
+        f_getip = False
+        if addresses[0][0] == '127.0.0.1':
+            f_getip = True
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             if f_getip:
-                addresses=self.get_goodip(port)
+                addresses = self.get_goodip(port)
             reorg_ipaddrs()
             window = self.max_window + i
-            if i==0 and f_getip:
-                addrs=addresses[:min(len(addresses),window)]
+            if i < kwargs.get('max_retry', 4) // 2 and f_getip:
+                addrs = addresses[:min(len(addresses), window)]
             else:
                 if len(self.ssl_connection_good_ipaddrs) > len(self.ssl_connection_bad_ipaddrs):
                     window = max(2, window-2)
@@ -2026,18 +2026,18 @@ class AdvancedNet2(Net2):
         except Queue.Empty:
             pass
         addresses = [(x, port) for x in self.iplist_alias.get(self.getaliasbyname('%s:%d' % (hostname, port))) or self.gethostsbyname(hostname)]
-        f_getip=False
-        if addresses[0][0]=='127.0.0.1':
-            f_getip=True
+        f_getip = False
+        if addresses[0][0] == '127.0.0.1':
+            f_getip = True
         #logging.info('gethostsbyname(%r) return %d addresses', hostname, len(addresses))
         sock = None
         for i in range(kwargs.get('max_retry', 4)):
             if f_getip:
-                addresses=self.get_goodip(port)
+                addresses = self.get_goodip(port)
             reorg_ipaddrs()
             window = self.max_window + i
-            if i==0 and f_getip:
-                addrs=addresses[:min(len(addresses),window)]
+            if i < kwargs.get('max_retry', 4) // 2 and f_getip:
+                addrs = addresses[:min(len(addresses), window)]
             else:
                 good_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_good_ipaddrs], key=self.ssl_connection_time.get)
                 bad_ipaddrs = sorted([x for x in addresses if x in self.ssl_connection_bad_ipaddrs], key=self.ssl_connection_bad_ipaddrs.get)
