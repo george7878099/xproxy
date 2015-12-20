@@ -1089,7 +1089,7 @@ class StripPluginEx(StripPlugin):
 
 class DirectFetchPlugin(BaseFetchPlugin):
     """direct fetch plugin"""
-    connect_timeout = 4
+    connect_timeout = 14
     read_timeout = 16
     max_retry = 3
 
@@ -1112,7 +1112,7 @@ class DirectFetchPlugin(BaseFetchPlugin):
         try:
             if rescue_bytes:
                 headers['Range'] = 'bytes=%d-' % rescue_bytes
-            response = handler.net2.create_http_request(method, url, headers, body, timeout=handler.net2.connect_timeout, read_timeout=self.read_timeout, **kwargs)
+            response = handler.net2.create_http_request(method, url, headers, body, timeout=handler.net2.connect_timeout, read_timeout=self.read_timeout, validate=True, **kwargs)
             logging.info('%s "DIRECT %s %s %s" %s %s', handler.address_string(), handler.command, url, handler.protocol_version, response.status, response.getheader('Content-Length', '-'))
             need_chunked = bool(response.getheader('Transfer-Encoding'))
             if not rescue_bytes:
