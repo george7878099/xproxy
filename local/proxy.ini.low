@@ -31,7 +31,6 @@ google_talk = 127.0.0.1
 
 [profile]
 .appspot.com = google_hk,forcehttps,fakehttps,crlf
-.google.com = google_hk,forcehttps,fakehttps
 
 [pac]
 enable = 1
