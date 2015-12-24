@@ -30,7 +30,36 @@ google_hk = 127.0.0.1
 google_talk = 127.0.0.1
 
 [profile]
+.c.docs.google.com = withgae
+.c.pack.google.com = withgae
+.c.bigcache.googleapis.com = withgae
+dl-ssl.google.com = withgae
+dl.google.com = google_cn
+play.google.com = withgae
+wenda.google.com.hk = withgae
+clients.google.com = withgae,noforcehttps
+.clients.google.com = withgae,noforcehttps
+clients1.google.com = withgae,noforcehttps
+translate.google.com = withgae,noforcehttps
+talk.google.com = google_talk
+talk.l.google.com = google_talk
+talkx.l.google.com = google_talk
 .appspot.com = google_hk,forcehttps,fakehttps,crlf
+.google.com = google_hk,forcehttps,fakehttps
+.google.com.hk = google_hk,forcehttps,fakehttps
+.commondatastorage.googleapis.com = withgae
+.googleapis.com = google_hk,forcehttps,fakehttps
+.googleusercontent.com = google_hk,forcehttps,fakehttps
+.googletagservices.com = google_hk,forcehttps,fakehttps
+.googletagmanager.com = google_hk,forcehttps,fakehttps
+.google-analytics.com = google_cn,forcehttps,fakehttps
+.gstatic.com = google_hk,forcehttps,fakehttps
+.ggpht.com = google_hk,forcehttps,fakehttps
+.googlegroups.com = google_hk,forcehttps,fakehttps
+.googlecode.com = google_hk,forcehttps,fakehttps
+.youtube.com = google_hk,forcehttps,fakehttps
+https?://www\.google\.com/(?:imgres|url)\?.*url=([^&]+) = $1
+https?://www\.google\.com\.hk/(?:imgres|url)\?.*url=([^&]+) = $1
 
 [pac]
 enable = 1

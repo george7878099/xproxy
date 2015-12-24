@@ -219,7 +219,7 @@ class CertUtility(object):
         ca.set_pubkey(req.get_pubkey())
         ca.add_extensions([
             OpenSSL.crypto.X509Extension(
-                'basicConstraints', False, 'CA:TRUE', ca, ca)
+                'basicConstraints', False, 'CA:TRUE', subject=ca, issuer=ca)
             ])
         ca.sign(key, self.ca_digest)
         return key, ca
