@@ -903,6 +903,8 @@ class PacUtil(object):
                 admode = common.PAC_ADMODE
                 logging.info('try download %r to update_pacfile(%r)', common.PAC_ADBLOCK, filename)
                 adblock_content = PacUtil.urlread(common.PAC_ADBLOCK, autoproxy)
+                if not adblock_content.startswith('['):
+                    raise StandardError('bad adblock file')
                 logging.info('%r downloaded, try convert it with adblock2pac', common.PAC_ADBLOCK)
                 if 'gevent' in sys.modules and time.sleep is getattr(sys.modules['gevent'], 'sleep', None) and hasattr(gevent.get_hub(), 'threadpool'):
                     jsrule = gevent.get_hub().threadpool.apply_e(Exception, PacUtil.adblock2pac, (adblock_content, 'FindProxyForURLByAdblock', blackhole, default, admode))
@@ -929,6 +931,8 @@ class PacUtil(object):
                     url_content = PacUtil.urlread(url, autoproxy)
                     if not any(x in url_content for x in '!-@|'):
                         url_content = base64.b64decode(url_content)
+                    if not url_content.startswith('['):
+                        raise StandardError('bad autoproxy file')
                     autoproxy_content_list.append(url_content)
             autoproxy_content = '\n'.join(autoproxy_content_list)
             logging.info('%r downloaded, try convert it with autoproxy2pac_lite', common.PAC_GFWLIST)
