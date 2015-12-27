@@ -391,7 +391,7 @@ class RangeFetch(object):
 
 class GAEFetchPlugin(BaseFetchPlugin):
     """gae fetch plugin"""
-    max_retry = 2
+    max_retry = 4
 
     def __init__(self, appids, password, path, mode, cachesock, keepalive, obfuscate, pagespeed, validate, options):
         BaseFetchPlugin.__init__(self)
