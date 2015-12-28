@@ -322,7 +322,11 @@ class RangeFetch(object):
                     headers['Range'] = 'bytes=%d-%d' % (start, end)
                     fetchserver = ''
                     if not response:
-                        fetchserver = random.choice(self.fetchservers)
+                        goodservers = [x for x in self.fetchservers if 200 <= self._last_app_status.get(x, 200) < 300]
+                        if len(goodservers) > 0:
+                            fetchserver = random.choice(goodservers)
+                        else:
+                            fetchserver = random.choice(self.fetchservers)
                         if self._last_app_status.get(fetchserver, 200) >= 500 and self._last_app_status.get(fetchserver, 200) != 503:
                             time.sleep(5)
                         response = self.plugin.fetch(self.handler, self.handler.command, self.url, headers, self.handler.body, timeout=self.handler.net2.connect_timeout, fetchserver=fetchserver, **self.kwargs)
@@ -503,6 +507,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         # GAE donot allow set `Host` header
         if 'Host' in headers:
             del headers['Host']
+        fetchserver = kwargs.get('fetchserver')
         kwargs = {}
         if self.password:
             kwargs['password'] = self.password
@@ -517,7 +522,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         # prepare GAE request
         request_method = 'POST'
         fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
-        fetchserver = kwargs.get('fetchserver') or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
+        fetchserver = fetchserver or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
         request_headers = {}
         if common.GAE_OBFUSCATE:
             request_method = 'GET'
