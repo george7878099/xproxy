@@ -322,9 +322,13 @@ class RangeFetch(object):
                     headers['Range'] = 'bytes=%d-%d' % (start, end)
                     fetchserver = ''
                     if not response:
-                        fetchserver = random.choice(self.fetchservers)
-                        if self._last_app_status.get(fetchserver, 200) >= 500 and self._last_app_status.get(fetchserver, 200) != 503:
-                            time.sleep(5)
+                        servers_good = [x for x in self.fetchservers if 200 <= self._last_app_status.get(x, 200) < 300]
+                        servers_503 = [x for x in self.fetchservers if self._last_app_status.get(x, 200) == 503]
+                        servers_other = [x for x in self.fetchservers if not (200 <= self._last_app_status.get(x, 200) < 300 or self._last_app_status.get(x, 200) == 503)]
+                        servers = {'good': servers_good, '503': servers_503, 'other': servers_other}
+                        servertypes = (['good'] * 16 if len(servers_good) > 0 else []) + (['503'] if len(servers_503) > 0 else []) + (['other'] * 4 if len(servers_other) > 0 else [])
+                        servertype_choice = random.choice(servertypes)
+                        fetchserver = random.choice(servers[servertype_choice])
                         response = self.plugin.fetch(self.handler, self.handler.command, self.url, headers, self.handler.body, timeout=self.handler.net2.connect_timeout, fetchserver=fetchserver, **self.kwargs)
                 except Queue.Empty:
                     continue
@@ -391,7 +395,7 @@ class RangeFetch(object):
 
 class GAEFetchPlugin(BaseFetchPlugin):
     """gae fetch plugin"""
-    max_retry = 2
+    max_retry = 4
 
     def __init__(self, appids, password, path, mode, cachesock, keepalive, obfuscate, pagespeed, validate, options):
         BaseFetchPlugin.__init__(self)
@@ -503,6 +507,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         # GAE donot allow set `Host` header
         if 'Host' in headers:
             del headers['Host']
+        fetchserver = kwargs.get('fetchserver')
         kwargs = {}
         if self.password:
             kwargs['password'] = self.password
@@ -517,7 +522,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         # prepare GAE request
         request_method = 'POST'
         fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
-        fetchserver = kwargs.get('fetchserver') or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
+        fetchserver = fetchserver or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
         request_headers = {}
         if common.GAE_OBFUSCATE:
             request_method = 'GET'
@@ -903,6 +908,8 @@ class PacUtil(object):
                 admode = common.PAC_ADMODE
                 logging.info('try download %r to update_pacfile(%r)', common.PAC_ADBLOCK, filename)
                 adblock_content = PacUtil.urlread(common.PAC_ADBLOCK, autoproxy)
+                if not adblock_content.startswith('['):
+                    raise StandardError('bad adblock file')
                 logging.info('%r downloaded, try convert it with adblock2pac', common.PAC_ADBLOCK)
                 if 'gevent' in sys.modules and time.sleep is getattr(sys.modules['gevent'], 'sleep', None) and hasattr(gevent.get_hub(), 'threadpool'):
                     jsrule = gevent.get_hub().threadpool.apply_e(Exception, PacUtil.adblock2pac, (adblock_content, 'FindProxyForURLByAdblock', blackhole, default, admode))
@@ -929,6 +936,8 @@ class PacUtil(object):
                     url_content = PacUtil.urlread(url, autoproxy)
                     if not any(x in url_content for x in '!-@|'):
                         url_content = base64.b64decode(url_content)
+                    if not url_content.startswith('['):
+                        raise StandardError('bad autoproxy file')
                     autoproxy_content_list.append(url_content)
             autoproxy_content = '\n'.join(autoproxy_content_list)
             logging.info('%r downloaded, try convert it with autoproxy2pac_lite', common.PAC_GFWLIST)

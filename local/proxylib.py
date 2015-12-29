@@ -1718,7 +1718,7 @@ class AdvancedNet2(Net2):
                 if sock and hasattr(sock, 'getpeername'):
                     if cache_key and (sock.getpeername()[0] in self.fixed_iplist or self.tcp_connection_cachesock) and sock.tcp_time < tcp_time_threshold:
                         cache_queue = self.tcp_connection_cache[cache_key]
-                        if cache_queue.qsize() < 8:
+                        if cache_queue.qsize() > 8:
                             try:
                                 _, old_sock = cache_queue.get_nowait()
                                 old_sock.close()
@@ -1996,7 +1996,7 @@ class AdvancedNet2(Net2):
                 if sock and hasattr(sock, 'getpeername'):
                     if cache_key and (sock.getpeername()[0] in self.fixed_iplist or self.ssl_connection_cachesock) and sock.ssl_time < ssl_time_threshold:
                         cache_queue = self.ssl_connection_cache[cache_key]
-                        if cache_queue.qsize() < 8:
+                        if cache_queue.qsize() > 8:
                             try:
                                 _, old_sock = cache_queue.get_nowait()
                                 old_sock.close()
