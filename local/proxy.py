@@ -322,13 +322,13 @@ class RangeFetch(object):
                     headers['Range'] = 'bytes=%d-%d' % (start, end)
                     fetchserver = ''
                     if not response:
-                        goodservers = [x for x in self.fetchservers if 200 <= self._last_app_status.get(x, 200) < 300]
-                        if len(goodservers) > 0:
-                            fetchserver = random.choice(goodservers)
-                        else:
-                            fetchserver = random.choice(self.fetchservers)
-                        if self._last_app_status.get(fetchserver, 200) >= 500 and self._last_app_status.get(fetchserver, 200) != 503:
-                            time.sleep(5)
+                        servers_good = [x for x in self.fetchservers if 200 <= self._last_app_status.get(x, 200) < 300]
+                        servers_503 = [x for x in self.fetchservers if self._last_app_status.get(x, 200) == 503]
+                        servers_other = [x for x in self.fetchservers if not (200 <= self._last_app_status.get(x, 200) < 300 or self._last_app_status.get(x, 200) == 503)]
+                        servers = {'good': servers_good, '503': servers_503, 'other': servers_other}
+                        servertypes = (['good'] * 16 if len(servers_good) > 0 else []) + (['503'] if len(servers_503) > 0 else []) + (['other'] * 4 if len(servers_other) > 0 else [])
+                        servertype_choice = random.choice(servertypes)
+                        fetchserver = random.choice(servers[servertype_choice])
                         response = self.plugin.fetch(self.handler, self.handler.command, self.url, headers, self.handler.body, timeout=self.handler.net2.connect_timeout, fetchserver=fetchserver, **self.kwargs)
                 except Queue.Empty:
                     continue
