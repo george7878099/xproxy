@@ -1417,7 +1417,7 @@ class AutoRangeFilter(BaseProxyHandlerFilter):
 class StaticFileFilter(BaseProxyHandlerFilter):
     """static file filter"""
     index_file = 'index.html'
-    allow_exts = ['.crt', '.pac', '.crx', '.bak', '.htm', '.html', '.js', '.css', '.png', '.gif', '.jpg']
+    allow_exts = ['.pac', '.crx', '.htm', '.html', '.js', '.css', '.png', '.gif', '.jpg']
 
     def format_index_html(self, dirname):
         INDEX_TEMPLATE = u'''
@@ -1458,7 +1458,7 @@ class StaticFileFilter(BaseProxyHandlerFilter):
                     path = index_file
             if os.path.isfile(path):
                 if os.path.splitext(path)[1] not in self.allow_exts:
-                    return 'mock', {'status': 403, 'body': '403 Fobidon'}
+                    return 'mock', {'status': 403, 'body': '403 Forbidden'}
                 content_type = 'application/octet-stream'
                 try:
                     import mimetypes
