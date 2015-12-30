@@ -322,7 +322,7 @@ class RangeFetch(object):
                     headers['Range'] = 'bytes=%d-%d' % (start, end)
                     fetchserver = ''
                     if not response:
-                        goodservers = [x for x in self.fetchservers if self._server_ignore_until[x] <= time.time()]
+                        goodservers = [x for x in self.fetchservers if self._server_ignore_until[x] <= time.time() or self._server_ignore_until[x] - time.time() > 120]
                         if len(goodservers) <= 0:
                             goodservers = self.fetchservers
                         fetchserver = random.choice(goodservers)
