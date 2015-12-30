@@ -370,7 +370,7 @@ class RangeFetch(object):
                                 response.close()
                                 return
                             data = None
-                            with gevent.Timeout(max(1, self.bufsize//8192*2), False):
+                            with gevent.Timeout(max(1, self.bufsize//8192*4), False):
                                 data = response.read(self.bufsize)
                             if not data:
                                 break
