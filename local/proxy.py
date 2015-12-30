@@ -237,7 +237,7 @@ class RangeFetch(object):
         self.fetchservers = fetchservers
         self.kwargs = kwargs
         self._stopped = None
-        self._last_app_status = {}
+        self._server_ignore_until = {x: 0 for x in self.fetchservers}
         self.expect_begin = 0
 
     def fetch(self):
@@ -322,13 +322,10 @@ class RangeFetch(object):
                     headers['Range'] = 'bytes=%d-%d' % (start, end)
                     fetchserver = ''
                     if not response:
-                        servers_good = [x for x in self.fetchservers if 200 <= self._last_app_status.get(x, 200) < 300]
-                        servers_503 = [x for x in self.fetchservers if self._last_app_status.get(x, 200) == 503]
-                        servers_other = [x for x in self.fetchservers if not (200 <= self._last_app_status.get(x, 200) < 300 or self._last_app_status.get(x, 200) == 503)]
-                        servers = {'good': servers_good, '503': servers_503, 'other': servers_other}
-                        servertypes = (['good'] * 16 if len(servers_good) > 0 else []) + (['503'] if len(servers_503) > 0 else []) + (['other'] * 4 if len(servers_other) > 0 else [])
-                        servertype_choice = random.choice(servertypes)
-                        fetchserver = random.choice(servers[servertype_choice])
+                        goodservers = [x for x in self.fetchservers if self._server_ignore_until[x] <= time.time()]
+                        if len(goodservers) <= 0:
+                            goodservers = self.fetchservers
+                        fetchserver = random.choice(goodservers)
                         response = self.plugin.fetch(self.handler, self.handler.command, self.url, headers, self.handler.body, timeout=self.handler.net2.connect_timeout, fetchserver=fetchserver, **self.kwargs)
                 except Queue.Empty:
                     continue
@@ -341,7 +338,12 @@ class RangeFetch(object):
                     range_queue.put((start, end, None))
                     continue
                 if fetchserver:
-                    self._last_app_status[fetchserver] = response.app_status
+                    if response.app_status == 200:
+                        self._server_ignore_until[fetchserver] = 0
+                    elif response.app_status == 503:
+                        self._server_ignore_until[fetchserver] = time.time() + 120
+                    else:
+                        self._server_ignore_until[fetchserver] = time.time() + 20
                 if response.app_status != 200:
                     logging.warning('Range Fetch "%s %s" %s return %s', self.handler.command, self.url, headers['Range'], response.app_status)
                     response.close()
