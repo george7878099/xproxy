@@ -59,8 +59,6 @@ storage.googleapis.com = withgae
 .googlegroups.com = google_hk,forcehttps,fakehttps
 .googlecode.com = google_hk,forcehttps,fakehttps
 .youtube.com = google_hk,forcehttps,fakehttps
-https?://www\.google\.com/(?:imgres|url)\?.*url=([^&]+) = $1
-https?://www\.google\.com\.hk/(?:imgres|url)\?.*url=([^&]+) = $1
 
 [pac]
 enable = 1
