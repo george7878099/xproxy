@@ -21,7 +21,7 @@ keepalive = 0
 obfuscate = 0
 validate = 1
 transport = 0
-maxbuffered = 131072
+readbody = 131072
 options =
 regions =
 
