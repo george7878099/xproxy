@@ -151,12 +151,6 @@ def application(environ, start_response):
     kwargs = {}
     any(kwargs.__setitem__(x[len('x-urlfetch-'):].lower(), headers.pop(x)) for x in headers.keys() if x.lower().startswith('x-urlfetch-'))
 
-    if 'Content-Encoding' in headers and body:
-        if headers['Content-Encoding'] == 'deflate':
-            body = inflate(body)
-            headers['Content-Length'] = str(len(body))
-            del headers['Content-Encoding']
-
     logging.info('%s "%s %s %s" - -', environ['REMOTE_ADDR'], method, url, 'HTTP/1.1')
 
     if __password__ and __password__ != kwargs.get('password', ''):
@@ -186,6 +180,12 @@ def application(environ, start_response):
         start_response('405 Method Not Allowed', [('Content-Type', 'text/html; charset=utf-8')])
         yield message_html('405 Method Not Allowed', 'Method Not Allowed: %r' % method, detail='Method Not Allowed URL=%r' % url)
         raise StopIteration
+
+    if 'Content-Encoding' in headers and body:
+        if headers['Content-Encoding'] == 'deflate':
+            body = inflate(body)
+            headers['Content-Length'] = str(len(body))
+            del headers['Content-Encoding']
 
     timeout = int(kwargs.get('timeout', URLFETCH_TIMEOUT))
     validate_certificate = bool(int(kwargs.get('validate', 0)))

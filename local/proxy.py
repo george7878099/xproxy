@@ -52,7 +52,7 @@
 #      haosdent          <haosdent@gmail.com>
 #      xk liu            <lxk1012@gmail.com>
 
-__version__ = '3.2.3'
+__version__ = '4.0.0'
 
 import os
 import sys
@@ -70,6 +70,7 @@ except (ImportError, SystemError):
 import base64
 import collections
 import ConfigParser
+import copy
 import errno
 import httplib
 import io
@@ -210,6 +211,9 @@ from proxylib import URLRewriteFilter
 from proxylib import UserAgentFilter
 from proxylib import XORCipher
 from proxylib import forward_socket
+
+import iptool
+import addip
 
 
 def is_google_ip(ipaddr):
@@ -394,7 +398,6 @@ class RangeFetch(object):
                 logging.exception('RangeFetch._fetchlet error:%s', e)
                 raise
 
-
 class GAEFetchPlugin(BaseFetchPlugin):
     """gae fetch plugin"""
     max_retry = 4
@@ -417,7 +420,6 @@ class GAEFetchPlugin(BaseFetchPlugin):
         rescue_bytes = int(kwargs.pop('rescue_bytes', 0))
         method = handler.command
         headers = dict((k.title(), v) for k, v in handler.headers.items())
-        body = handler.body
         if handler.path[0] == '/':
             url = '%s://%s%s' % (handler.scheme, handler.headers['Host'], handler.path)
         elif handler.path.lower().startswith(('http://', 'https://', 'ftp://')):
@@ -428,10 +430,12 @@ class GAEFetchPlugin(BaseFetchPlugin):
         response = None
         for i in xrange(self.max_retry):
             try:
+                if i != 0 and handler.body and hasattr(handler.body, 'read'):
+                    raise Exception('Cannot resend an incomplete body')
                 if rescue_bytes:
                     headers['Range'] = 'bytes=%d-' % rescue_bytes
-                response = self.fetch(handler, method, url, headers, body, handler.net2.connect_timeout)
-                if response.app_status < 500:
+                response = self.fetch(handler, method, url, headers, handler.body, handler.net2.connect_timeout)
+                if response.app_status < 400:
                     break
                 else:
                     if response.app_status == 503:
@@ -499,6 +503,10 @@ class GAEFetchPlugin(BaseFetchPlugin):
                 return
 
     def fetch(self, handler, method, url, headers, body, timeout, **kwargs):
+        headers = copy.deepcopy(headers)
+        fetchserver = kwargs.get('fetchserver')
+        fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
+        fetchserver = fetchserver or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
         if isinstance(body, basestring) and body:
             if len(body) < 10 * 1024 * 1024 and 'Content-Encoding' not in headers:
                 zbody = deflate(body)
@@ -506,10 +514,9 @@ class GAEFetchPlugin(BaseFetchPlugin):
                     body = zbody
                     headers['Content-Encoding'] = 'deflate'
             headers['Content-Length'] = str(len(body))
-        # GAE donot allow set `Host` header
+        # GAE does not allow setting `Host` header
         if 'Host' in headers:
             del headers['Host']
-        fetchserver = kwargs.get('fetchserver')
         kwargs = {}
         if self.password:
             kwargs['password'] = self.password
@@ -523,8 +530,6 @@ class GAEFetchPlugin(BaseFetchPlugin):
         payload += ''.join('X-URLFETCH-%s: %s\r\n' % (k, v) for k, v in kwargs.items() if v)
         # prepare GAE request
         request_method = 'POST'
-        fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
-        fetchserver = fetchserver or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
         request_headers = {}
         if common.GAE_OBFUSCATE:
             request_method = 'GET'
@@ -537,17 +542,24 @@ class GAEFetchPlugin(BaseFetchPlugin):
                 fetchserver = re.sub(r'^(\w+://)', r'\g<1>1-ps.googleusercontent.com/h/', fetchserver)
         else:
             payload = deflate(payload)
-            body = '%s%s%s' % (struct.pack('!h', len(payload)), payload, body)
             if 'rc4' in common.GAE_OPTIONS:
                 request_headers['X-URLFETCH-Options'] = 'rc4'
+                body = '%s%s%s' % (struct.pack('!h', len(payload)), payload, body)
                 body = RC4Cipher(kwargs.get('password')).encrypt(body)
-            request_headers['Content-Length'] = str(len(body))
+                request_headers['Content-Length'] = str(len(body))
+            elif not hasattr(body, 'read'):
+                body = '%s%s%s' % (struct.pack('!h', len(payload)), payload, body)
+                request_headers['Content-Length'] = str(len(body))
+            else:
+                begin = '%s%s' % (struct.pack('!h', len(payload)), payload)
+                body = [(begin, 0), (body, int(handler.headers['Content-Length']))]
+                request_headers['Content-Length'] = str(len(begin) + int(handler.headers['Content-Length']))
         # post data
         need_crlf = 0 if common.GAE_MODE == 'https' else 1
         need_validate = common.GAE_VALIDATE
         cache_key = '%s:%d' % (handler.net2.host_postfix_map.get('.appspot.com',''), 443 if common.GAE_MODE == 'https' else 80)
         headfirst = bool(common.GAE_HEADFIRST)
-        response = handler.net2.create_http_request(request_method, fetchserver, request_headers, body, timeout, crlf=need_crlf, validate=need_validate, cache_key=cache_key, headfirst=headfirst)
+        response = handler.net2.create_http_request(request_method, fetchserver, request_headers, body, timeout, crlf=need_crlf, validate=need_validate, cache_key=cache_key, headfirst=headfirst, handler=handler)
         response.app_status = response.status
         if response.app_status != 200:
             return response
@@ -1311,6 +1323,7 @@ class Common(object):
         self.GAE_REGIONS = set(x.upper() for x in self.CONFIG.get('gae', 'regions').split('|') if x.strip())
         self.GAE_SSLVERSION = self.CONFIG.get('gae', 'sslversion')
         self.GAE_PAGESPEED = self.CONFIG.getint('gae', 'pagespeed') if self.CONFIG.has_option('gae', 'pagespeed') else 0
+        self.GAE_READBODY = self.CONFIG.getint('gae', 'readbody') if self.CONFIG.has_option('gae', 'readbody') else 1024 * 1024 * 1024
 
         if self.GAE_IPV6:
             sock = None
@@ -1503,7 +1516,8 @@ class Common(object):
     def summary(self):
         info = ''
         info += '------------------------------------------------------\n'
-        info += 'GoAgent Version    : %s (python/%s gevent/%s pyopenssl/%s)\n' % (__version__, sys.version[:5], gevent.__version__, OpenSSL.__version__)
+        info += 'xProxy Version    : %s (python/%s gevent/%s pyopenssl/%s)\n' % (__version__, sys.version[:5], gevent.__version__, OpenSSL.__version__)
+        info += 'Based on GoAgent 3.2.3\n'
         info += 'Uvent Version      : %s (pyuv/%s libuv/%s)\n' % (__import__('uvent').__version__, __import__('pyuv').__version__, __import__('pyuv').LIBUV_VERSION) if all(x in sys.modules for x in ('pyuv', 'uvent')) else ''
         info += 'Listen Address     : %s:%d\n' % (self.LISTEN_IP, self.LISTEN_PORT)
         info += 'Local Proxy        : %s:%s\n' % (self.PROXY_HOST, self.PROXY_PORT) if self.PROXY_ENABLE else ''
@@ -1543,7 +1557,7 @@ def pre_start():
             pass
     elif os.name == 'nt':
         import ctypes
-        ctypes.windll.kernel32.SetConsoleTitleW(u'GoAgent v%s' % __version__)
+        ctypes.windll.kernel32.SetConsoleTitleW(u'xProxy v%s' % __version__)
         if not common.LISTEN_VISIBLE:
             ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
         else:
@@ -1597,6 +1611,7 @@ def pre_start():
     RangeFetch.maxsize = common.AUTORANGE_MAXSIZE
     RangeFetch.bufsize = common.AUTORANGE_BUFSIZE
     RangeFetch.waitsize = common.AUTORANGE_WAITSIZE
+    SimpleProxyHandler.maxbuffered = common.GAE_MAXBUFFERED
     if True:
         GAEProxyHandler.handler_filters.insert(0, AutoRangeFilter(common.AUTORANGE_HOSTS, common.AUTORANGE_ENDSWITH, common.AUTORANGE_NOENDSWITH, common.AUTORANGE_MAXSIZE))
     if common.GAE_REGIONS:
@@ -1626,6 +1641,14 @@ def main():
     logging.basicConfig(level=logging.DEBUG if common.LISTEN_DEBUGINFO else logging.INFO, format='%(levelname)s - %(asctime)s %(message)s', datefmt='[%b %d %H:%M:%S]')
     pre_start()
     sys.stderr.write(common.summary())
+    
+    if (not os.path.exists('good_ip.txt')) and os.path.exists('good_ip_tmp.tmp'):
+        logging.warn("xproxy didn't exit normally, restoring ip list...")
+        os.rename('good_ip_tmp.tmp','good_ip.txt')
+    addip.addip('', 0)
+    iptool_thread = threading.Thread(target = iptool.start)
+    iptool_thread.setDaemon(True)
+    iptool_thread.start()
 
     if common.PAC_ENABLE:
         thread.start_new_thread(LocalProxyServer((common.PAC_IP, common.PAC_PORT), PACProxyHandler).serve_forever, tuple())
@@ -1680,4 +1703,7 @@ def main():
         gevent.sleep(sys.maxint)
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        iptool.stop()

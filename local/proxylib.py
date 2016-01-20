@@ -36,6 +36,8 @@ import urlparse
 import OpenSSL
 import dnslib
 
+import addip
+import iptool
 
 gevent = sys.modules.get('gevent') or logging.warn('please enable gevent.')
 
@@ -888,39 +890,30 @@ def get_process_list():
 
 def forward_socket(local, remote, timeout, bufsize):
     """forward socket"""
-    try:
-        tick = 1
-        timecount = timeout
-        while 1:
-            timecount -= tick
-            if timecount <= 0:
-                break
-            (ins, _, errors) = select.select([local, remote], [], [local, remote], tick)
-            if errors:
-                break
-            for sock in ins:
-                data = sock.recv(bufsize)
+    def __io_copy(dest, source, timeout):
+        try:
+            dest.settimeout(timeout)
+            source.settimeout(timeout)
+            while 1:
+                data = source.recv(bufsize)
                 if not data:
                     break
-                if sock is remote:
-                    local.sendall(data)
-                    timecount = timeout
-                else:
-                    remote.sendall(data)
-                    timecount = timeout
-    except socket.timeout:
-        pass
-    except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
-        if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.ENOTCONN, errno.EPIPE):
-            raise
-        if e.args[0] in (errno.EBADF,):
-            return
-    finally:
-        for sock in (remote, local):
-            try:
-                sock.close()
-            except StandardError:
-                pass
+                dest.sendall(data)
+        except socket.timeout:
+            pass
+        except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
+            if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.ENOTCONN, errno.EPIPE):
+                raise
+            if e.args[0] in (errno.EBADF,):
+                return
+        finally:
+            for sock in (dest, source):
+                try:
+                    sock.close()
+                except StandardError:
+                    pass
+    thread.start_new_thread(__io_copy, (remote.dup(), local.dup(), timeout))
+    __io_copy(local, remote, timeout)
 
 
 class LocalProxyServer(SocketServer.ThreadingTCPServer):
@@ -1108,6 +1101,8 @@ class DirectFetchPlugin(BaseFetchPlugin):
             url = 'http://%s%s' % (handler.headers['Host'], handler.path)
         headers = dict((k.title(), v) for k, v in handler.headers.items())
         body = handler.body
+        if hasattr(body, 'read'):
+            body = (body, int(headers['Content-Length']))
         response = None
         try:
             if rescue_bytes:
@@ -1135,7 +1130,7 @@ class DirectFetchPlugin(BaseFetchPlugin):
                     data = response.read(bufsize)
                 if data is None:
                     logging.warning('DIRECT response.read(%r) %r timeout', bufsize, url)
-                    if response.getheader('Accept-Ranges', '') == 'bytes' and not urlparse.urlparse(url).query:
+                    if response.getheader('Accept-Ranges', '') == 'bytes' and isinstance(body, basestring) and not urlparse.urlparse(url).query:
                         kwargs['rescue_bytes'] = written
                         return self.handle(handler, **kwargs)
                     handler.close_connection = True
@@ -1628,26 +1623,8 @@ class AdvancedNet2(Net2):
         return iplist
 
     def get_goodip(self,port):
-        try:
-            ff=open("good_ip.txt","r")
-            cur=""
-            lst=[]
-            while True:
-                cur=ff.readline()
-                if cur=="":
-                    break
-                cur=cur.strip("\n").strip("\r").split(" ")
-                lst.append(cur[0])
-            self.goodip=lst
-            ff.close()
-        except IOError:
-            try:
-                ff.close()
-            except UnboundLocalError:
-                pass
-            lst=self.goodip
-        ret=[(x,port) for x in lst]
-        return ret
+        addip.addip('', 0)
+        return [(x[2], port) for x in iptool.global_iplist]
 
     def create_tcp_connection(self, hostname, port, timeout, **kwargs):
         client_hello = kwargs.get('client_hello', None)
@@ -2068,7 +2045,7 @@ class AdvancedNet2(Net2):
         if not hasattr(sock, 'getpeername'):
             raise sock
 
-    def create_http_request(self, method, url, headers, body, timeout, max_retry=2, bufsize=8192, crlf=None, validate=None, cache_key=None, headfirst=False, **kwargs):
+    def create_http_request(self, method, url, headers, body, timeout, max_retry=2, bufsize=8192, crlf=None, validate=None, cache_key=None, headfirst=False, handler=None, **kwargs):
         scheme, netloc, path, query, _ = urlparse.urlsplit(url)
         if netloc.rfind(':') <= netloc.rfind(']'):
             # no port number
@@ -2116,17 +2093,26 @@ class AdvancedNet2(Net2):
         request_data += '%s %s %s\r\n' % (method, path, 'HTTP/1.1')
         request_data += ''.join('%s: %s\r\n' % (k.title(), v) for k, v in headers.items() if k.title() not in self.skip_headers)
         request_data += '\r\n'
-        if isinstance(body, bytes):
-            sock.sendall(request_data.encode() + body)
-        elif hasattr(body, 'read'):
-            sock.sendall(request_data)
-            while 1:
-                data = body.read(bufsize)
-                if not data:
-                    break
-                sock.sendall(data)
-        else:
-            raise TypeError('create_http_request(body) must be a string or buffer, not %r' % type(body))
+        if isinstance(body, tuple):
+            body = [body]
+        if not isinstance(body, list):
+            body = [(body, 0)]
+        sock.sendall(request_data)
+        for (x, length) in body:
+            if isinstance(x, bytes):
+                if x:
+                    sock.sendall(x)
+            elif hasattr(x, 'read'):
+                data_all = ''
+                for i in range(0, length, bufsize):
+                    data = x.read(min(bufsize, length - i))
+                    if not data:
+                        break
+                    if handler: data_all += data
+                    sock.sendall(data)
+                if handler: handler.body = data_all
+            else:
+                raise TypeError('create_http_request(body) must be a string or buffer, not %r' % type(body))
         response = None
         try:
             while crlf_counter:
@@ -2263,6 +2249,7 @@ class SimpleProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     handler_plugins = {'direct': DirectFetchPlugin(),
                        'mock': MockFetchPlugin(),
                        'strip': StripPlugin(),}
+    readbody = 128 * 1024
     net2 = Net2()
 
     def finish(self):
@@ -2365,13 +2352,21 @@ class SimpleProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_METHOD(self):
         self.parse_header()
-        self.body = self.rfile.read(int(self.headers['Content-Length'])) if 'Content-Length' in self.headers else ''
         for handler_filter in self.handler_filters:
             action = handler_filter.filter(self)
             if not action:
                 continue
             if not isinstance(action, tuple):
                 raise TypeError('%s must return a tuple, not %r' % (handler_filter, action))
+            if 'Content-Length' in self.headers:
+                if action[0] in ['direct', 'gae'] and int(self.headers['Content-Length']) > self.readbody:
+                    self.body = self.rfile
+                elif action[0] != 'strip':
+                    self.body = self.rfile.read(int(self.headers['Content-Length']))
+                else:
+                    self.body = ''
+            else:
+                self.body = ''
             plugin = self.handler_plugins[action[0]]
             return plugin.handle(self, **action[1])
 

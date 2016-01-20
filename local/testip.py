@@ -59,8 +59,7 @@ def checkconnect(addr):
 		c.connect((addr, 443))
 		c.close()
 	except KeyboardInterrupt:
-		addip.stop=True
-		return False
+		iptool.stop()
 	except:
 		return False
 	return True
@@ -97,7 +96,7 @@ def testipall():
 					break
 			time.sleep(2)
 	except KeyboardInterrupt:
-		addip.stop=True
+		iptool.stop()
 
 lock=threading.Lock()
 checklst=set([])
@@ -170,9 +169,7 @@ def testipwork(mode):
 								iperror=False
 								addip.sleeplock.acquire()
 								if addip.sleep_before==0:
-									addip.printlock.acquire()
-									print ("iptool sleeps for %d secs" % iptool.get_config("iptool","sleep_time"))
-									addip.printlock.release()
+									logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
 								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
 								addip.sleeplock.release()
 							break
@@ -181,8 +178,7 @@ def testipwork(mode):
 				lock.release()
 				time.sleep(1)
 	except KeyboardInterrupt:
-		addip.stop=True
-		return
+		iptool.stop()
 	except:
 		pass
 	if ipvalid:
@@ -213,9 +209,9 @@ def testip(mode):
 				threadcnt_lock.release()
 			testipwork(mode)
 	except KeyboardInterrupt:
-		addip.stop=True
+		iptool.stop()
 	except:
-		print traceback.format_exc()
+		logging.exception("testip exception")
 		if mode>0:
 			special_lock.acquire()
 			special.remove(mode)

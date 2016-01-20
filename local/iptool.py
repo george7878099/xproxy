@@ -12,6 +12,7 @@ import addip
 import checkip
 import testip
 
+global_iplist = []
 config_lock=threading.Lock()
 
 iptool_config={("iptool","sleep_time"):0,
@@ -99,7 +100,12 @@ def start():
 			time.sleep(2)
 			read_config()
 		except KeyboardInterrupt:
-			addip.stop=True
+			stop()
+
+def stop():
+	addip.stop = True
+	time.sleep(1)
+	os._exit(0)
 
 if __name__ == '__main__':
 	try:

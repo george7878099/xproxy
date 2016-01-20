@@ -121,7 +121,7 @@ def checkipall():
 					threadcnt_lock.release()
 					break
 	except KeyboardInterrupt:
-		addip.stop=True
+		iptool.stop()
 
 lock=threading.Lock()
 checklst=set([])
@@ -168,15 +168,11 @@ def checkipwork():
 						response.begin()
 						if "Google Frontend" in response.msg.dict["server"]:
 							addip.addip(ip,costtime)
-							addip.printlock.acquire()
-							print("found ip %s, %d ms" % (ip,costtime))
-							addip.printlock.release()
+							logging.info("found ip %s, %d ms", ip, costtime)
 						elif "google.com/sorry/" in response.msg.dict["location"]:
 							addip.sleeplock.acquire()
 							if addip.sleep_before==0:
-								addip.printlock.acquire()
-								print ("iptool sleeps for %d secs" % iptool.get_config("iptool","sleep_time"))
-								addip.printlock.release()
+								logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
 							addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
 							addip.sleeplock.release()
 						break
@@ -184,8 +180,7 @@ def checkipwork():
 		else:
 			lock.release()
 	except KeyboardInterrupt:
-		addip.stop=True
-		return
+		iptool.stop()
 	except:
 		pass
 	if ipvalid:
@@ -206,9 +201,9 @@ def checkip():
 			threadcnt_lock.release()
 			checkipwork()
 	except KeyboardInterrupt:
-		addip.stop=True
+		iptool.stop()
 	except:
-		print traceback.format_exc()
+		logging.exception("checkip exception")
 		threadcnt_lock.acquire()
 		threadcnt-=1
 		threadcnt_lock.release()
