@@ -16,12 +16,14 @@ ipv6 = 0
 sslversion = TLSv1
 window = 2
 cachesock = 1
-headfirst = 1
+headfirst = 0
 keepalive = 0
 obfuscate = 0
 validate = 1
 transport = 0
 readbody = 131072
+connect_timeout = 15
+timeout = 30
 options =
 regions =
 

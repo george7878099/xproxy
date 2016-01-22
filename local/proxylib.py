@@ -1082,8 +1082,8 @@ class StripPluginEx(StripPlugin):
 
 class DirectFetchPlugin(BaseFetchPlugin):
     """direct fetch plugin"""
-    connect_timeout = 14
-    read_timeout = 16
+    connect_timeout = 10
+    read_timeout = 18
     max_retry = 3
 
     def handle(self, handler, **kwargs):
@@ -1101,13 +1101,11 @@ class DirectFetchPlugin(BaseFetchPlugin):
             url = 'http://%s%s' % (handler.headers['Host'], handler.path)
         headers = dict((k.title(), v) for k, v in handler.headers.items())
         body = handler.body
-        if hasattr(body, 'read'):
-            body = (body, int(headers['Content-Length']))
         response = None
         try:
             if rescue_bytes:
                 headers['Range'] = 'bytes=%d-' % rescue_bytes
-            response = handler.net2.create_http_request(method, url, headers, body, timeout=handler.net2.connect_timeout, read_timeout=self.read_timeout, validate=True, **kwargs)
+            response = handler.net2.create_http_request(method, url, headers, body, timeout=handler.net2.connect_timeout, read_timeout=self.read_timeout, validate=True, handler=handler, **kwargs)
             logging.info('%s "DIRECT %s %s %s" %s %s', handler.address_string(), handler.command, url, handler.protocol_version, response.status, response.getheader('Content-Length', '-'))
             need_chunked = bool(response.getheader('Transfer-Encoding'))
             if not rescue_bytes:
@@ -1130,7 +1128,7 @@ class DirectFetchPlugin(BaseFetchPlugin):
                     data = response.read(bufsize)
                 if data is None:
                     logging.warning('DIRECT response.read(%r) %r timeout', bufsize, url)
-                    if response.getheader('Accept-Ranges', '') == 'bytes' and isinstance(body, basestring) and not urlparse.urlparse(url).query:
+                    if response.getheader('Accept-Ranges', '') == 'bytes' and not urlparse.urlparse(url).query:
                         kwargs['rescue_bytes'] = written
                         return self.handle(handler, **kwargs)
                     handler.close_connection = True
@@ -1543,7 +1541,11 @@ class Net2(object):
 
 class AdvancedNet2(Net2):
     """getaliasbyname/gethostsbyname/create_tcp_connection/create_ssl_connection/create_http_request"""
-    def __init__(self, window=4, connect_timeout=16, timeout=18, ssl_version='TLSv1', dns_servers=['8.8.8.8', '114.114.114.114'], dns_blacklist=[], dns_cachesize=64*1024):
+    connect_timeout_default = 10
+    timeout_default = 18
+    def __init__(self, window=4, connect_timeout=None, timeout=None, ssl_version='TLSv1', dns_servers=['8.8.8.8', '114.114.114.114'], dns_blacklist=[], dns_cachesize=64*1024):
+        if not connect_timeout: connect_timeout = self.connect_timeout_default
+        if not timeout: timeout = self.timeout_default
         self.max_window = window
         self.connect_timeout = connect_timeout
         self.timeout = timeout
@@ -2093,26 +2095,17 @@ class AdvancedNet2(Net2):
         request_data += '%s %s %s\r\n' % (method, path, 'HTTP/1.1')
         request_data += ''.join('%s: %s\r\n' % (k.title(), v) for k, v in headers.items() if k.title() not in self.skip_headers)
         request_data += '\r\n'
-        if isinstance(body, tuple):
-            body = [body]
-        if not isinstance(body, list):
-            body = [(body, 0)]
         sock.sendall(request_data)
-        for (x, length) in body:
-            if isinstance(x, bytes):
-                if x:
-                    sock.sendall(x)
-            elif hasattr(x, 'read'):
-                data_all = ''
-                for i in range(0, length, bufsize):
-                    data = x.read(min(bufsize, length - i))
-                    if not data:
-                        break
-                    if handler: data_all += data
-                    sock.sendall(data)
-                if handler: handler.body = data_all
-            else:
-                raise TypeError('create_http_request(body) must be a string or buffer, not %r' % type(body))
+        if body:
+            sock.sendall(body)
+        if handler:
+            while handler.body_unread_len > 0:
+                data = handler.body_unread.read(min(bufsize, handler.body_unread_len))
+                if not data:
+                    break
+                handler.body += data
+                handler.body_unread_len -= len(data)
+                sock.sendall(data)
         response = None
         try:
             while crlf_counter:
@@ -2258,6 +2251,7 @@ class SimpleProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
         except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
             if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.EPIPE):
+
                 raise
 
     def address_string(self):
@@ -2358,15 +2352,15 @@ class SimpleProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 continue
             if not isinstance(action, tuple):
                 raise TypeError('%s must return a tuple, not %r' % (handler_filter, action))
+            self.body = ''
+            self.body_unread = ''
+            self.body_unread_len = 0
             if 'Content-Length' in self.headers:
                 if action[0] in ['direct', 'gae'] and int(self.headers['Content-Length']) > self.readbody:
-                    self.body = self.rfile
+                    self.body_unread = self.rfile
+                    self.body_unread_len = int(self.headers['Content-Length'])
                 elif action[0] != 'strip':
                     self.body = self.rfile.read(int(self.headers['Content-Length']))
-                else:
-                    self.body = ''
-            else:
-                self.body = ''
             plugin = self.handler_plugins[action[0]]
             return plugin.handle(self, **action[1])
 

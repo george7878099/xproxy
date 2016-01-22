@@ -430,6 +430,8 @@ class GAEFetchPlugin(BaseFetchPlugin):
         response = None
         for i in xrange(self.max_retry):
             try:
+                if i != 0 and handler.body and hasattr(handler.body, 'read'):
+                    raise Exception('Cannot resend an incomplete body')
                 if rescue_bytes:
                     headers['Range'] = 'bytes=%d-' % rescue_bytes
                 response = self.fetch(handler, method, url, headers, handler.body, handler.net2.connect_timeout)
@@ -505,7 +507,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
         fetchserver = kwargs.get('fetchserver')
         fetchserver_index = 0	# fetchserver_index = random.randint(0, len(self.appids)-1) if 'Range' in headers else 0
         fetchserver = fetchserver or '%s://%s.appspot.com%s' % (self.mode, self.appids[fetchserver_index], self.path)
-        if handler.body_unread_len == 0 and isinstance(body, basestring) and body:
+        if isinstance(body, basestring) and body:
             if len(body) < 10 * 1024 * 1024 and 'Content-Encoding' not in headers:
                 zbody = deflate(body)
                 if len(zbody) < len(body):
@@ -533,14 +535,6 @@ class GAEFetchPlugin(BaseFetchPlugin):
             request_method = 'GET'
             fetchserver += 'ps/%d%s.gif' % (int(time.time()*1000), random.random())
             request_headers['X-URLFETCH-PS1'] = base64.b64encode(deflate(payload)).strip()
-            if handler.body_unread_len > 0:
-                while handler.body_unread_len > 0:
-                    data = handler.body_unread.read(min(8192, handler.body_unread_len))
-                    if not data:
-                        break
-                    handler.body += data
-                    handler.body_unread_len -= len(data)
-                body = handler.body
             if body:
                 request_headers['X-URLFETCH-PS2'] = base64.b64encode(deflate(body)).strip()
                 body = ''
@@ -550,20 +544,16 @@ class GAEFetchPlugin(BaseFetchPlugin):
             payload = deflate(payload)
             if 'rc4' in common.GAE_OPTIONS:
                 request_headers['X-URLFETCH-Options'] = 'rc4'
-                if handler.body_unread_len > 0:
-                    while handler.body_unread_len > 0:
-                        data = handler.body_unread.read(min(8192, handler.body_unread_len))
-                        if not data:
-                            break
-                        handler.body += data
-                        handler.body_unread_len -= len(data)
-                    body = handler.body
                 body = '%s%s%s' % (struct.pack('!h', len(payload)), payload, body)
                 body = RC4Cipher(kwargs.get('password')).encrypt(body)
                 request_headers['Content-Length'] = str(len(body))
-            else:
+            elif not hasattr(body, 'read'):
                 body = '%s%s%s' % (struct.pack('!h', len(payload)), payload, body)
-                request_headers['Content-Length'] = str(len(body) + handler.body_unread_len)
+                request_headers['Content-Length'] = str(len(body))
+            else:
+                begin = '%s%s' % (struct.pack('!h', len(payload)), payload)
+                body = [(begin, 0), (body, int(handler.headers['Content-Length']))]
+                request_headers['Content-Length'] = str(len(begin) + int(handler.headers['Content-Length']))
         # post data
         need_crlf = 0 if common.GAE_MODE == 'https' else 1
         need_validate = common.GAE_VALIDATE
@@ -1025,7 +1015,6 @@ class PacUtil(object):
                     line = line[2:]
                     use_proxy = False
                 domain = ''
-
                 try:
                     if line.startswith('/') and line.endswith('/'):
                         line = line[1:-1]
@@ -1047,7 +1036,6 @@ class PacUtil(object):
                     logging.warning('error when process gfwlist rule: %r %s', line, e)
                 if '*' in domain:
                     domain = domain.split('*')[-1]
-
                 if not domain or re.match(r'^\w+$', domain):
                     logging.debug('unsupport gfwlist rule: %r', line)
                     continue
@@ -1336,12 +1324,6 @@ class Common(object):
         self.GAE_SSLVERSION = self.CONFIG.get('gae', 'sslversion')
         self.GAE_PAGESPEED = self.CONFIG.getint('gae', 'pagespeed') if self.CONFIG.has_option('gae', 'pagespeed') else 0
         self.GAE_READBODY = self.CONFIG.getint('gae', 'readbody') if self.CONFIG.has_option('gae', 'readbody') else 1024 * 1024 * 1024
-        self.GAE_CONNECT_TIMEOUT = self.CONFIG.getint('gae', 'connect_timeout') if self.CONFIG.has_option('gae', 'connect_timeout') else 10
-        self.GAE_TIMEOUT = self.CONFIG.getint('gae', 'timeout') if self.CONFIG.has_option('gae', 'timeout') else 18
-        AdvancedNet2.connect_timeout_default = self.GAE_CONNECT_TIMEOUT
-        AdvancedNet2.timeout_default = self.GAE_TIMEOUT
-        DirectFetchPlugin.connect_timeout = self.GAE_CONNECT_TIMEOUT
-        DirectFetchPlugin.read_timeout = self.GAE_TIMEOUT
 
         if self.GAE_IPV6:
             sock = None
