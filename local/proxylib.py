@@ -2251,7 +2251,6 @@ class SimpleProxyHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             BaseHTTPServer.BaseHTTPRequestHandler.finish(self)
         except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
             if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.EPIPE):
-
                 raise
 
     def address_string(self):

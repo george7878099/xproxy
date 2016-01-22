@@ -1025,7 +1025,6 @@ class PacUtil(object):
                     line = line[2:]
                     use_proxy = False
                 domain = ''
-
                 try:
                     if line.startswith('/') and line.endswith('/'):
                         line = line[1:-1]
@@ -1047,7 +1046,6 @@ class PacUtil(object):
                     logging.warning('error when process gfwlist rule: %r %s', line, e)
                 if '*' in domain:
                     domain = domain.split('*')[-1]
-
                 if not domain or re.match(r'^\w+$', domain):
                     logging.debug('unsupport gfwlist rule: %r', line)
                     continue
