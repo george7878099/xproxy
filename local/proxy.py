@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 # coding:utf-8
+# Based on GoAgent 3.2.3
 # Based on GAppProxy 2.0.0 by Du XiaoGang <dugang.2008@gmail.com>
 # Based on WallProxy 0.4.0 by Hust Moon <www.ehust@gmail.com>
 # Contributor:
