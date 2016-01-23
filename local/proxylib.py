@@ -1836,6 +1836,7 @@ class AdvancedNet2(Net2):
                         else:
                             response.begin()
                         if hostname.endswith('.appspot.com') and 'Google' not in response.getheader('server', ''):
+                            addip.addip(ipaddr[0], 2147483647)
                             self.ssl_connection_good_ipaddrs.pop(ipaddr, None)
                             self.ssl_connection_bad_ipaddrs.pop(ipaddr, None)
                             self.ssl_connection_unknown_ipaddrs.pop(ipaddr, None)
@@ -1933,6 +1934,7 @@ class AdvancedNet2(Net2):
                         else:
                             response.begin()
                         if hostname.endswith('.appspot.com') and 'Google' not in response.getheader('server', ''):
+                            addip.addip(ipaddr[0], 2147483647)
                             self.ssl_connection_good_ipaddrs.pop(ipaddr, None)
                             self.ssl_connection_bad_ipaddrs.pop(ipaddr, None)
                             self.ssl_connection_unknown_ipaddrs.pop(ipaddr, None)
