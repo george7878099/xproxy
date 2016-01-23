@@ -1677,12 +1677,12 @@ def main():
     if common.GAE_ENABLE:
         if common.PHP_ENABLE:
             GAEProxyHandler.handler_plugins['php'] = php_server.RequestHandlerClass.handler_plugins['php']
-        if os.name == 'nt':
-            GAEProxyHandler.handler_plugins['strip'] = StripPluginEx()
+        #if os.name == 'nt':
+        #    GAEProxyHandler.handler_plugins['strip'] = StripPluginEx()
         gae_server = LocalProxyServer((common.LISTEN_IP, common.LISTEN_PORT), GAEProxyHandler)
-        gae_server.serve_forever()
-    else:
-        gevent.sleep(sys.maxint)
+        thread.start_new_thread(gae_server.serve_forever, tuple())
+
+    gevent.sleep(sys.maxint)
 
 if __name__ == '__main__':
     try:

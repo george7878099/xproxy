@@ -195,7 +195,7 @@ class CertUtility(object):
         self.ca_keyfile = filename
         self.ca_thumbprint = ''
         self.ca_certdir = dirname
-        self.ca_digest = 'sha256'
+        self.ca_digest = 'sha1'
         self.ca_lock = threading.Lock()
 
     def create_ca(self):
