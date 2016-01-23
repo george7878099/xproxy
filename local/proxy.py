@@ -434,7 +434,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
                 if rescue_bytes:
                     headers['Range'] = 'bytes=%d-' % rescue_bytes
                 response = self.fetch(handler, method, url, headers, handler.body, handler.net2.timeout)
-                if response.app_status < 400:
+                if response.app_status < 500:
                     break
                 else:
                     if response.app_status == 503:
