@@ -22,8 +22,7 @@ obfuscate = 0
 validate = 1
 transport = 0
 readbody = 131072
-connect_timeout = 15
-timeout = 30
+timeout = 20
 options =
 regions =
 

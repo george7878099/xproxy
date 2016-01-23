@@ -433,7 +433,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
             try:
                 if rescue_bytes:
                     headers['Range'] = 'bytes=%d-' % rescue_bytes
-                response = self.fetch(handler, method, url, headers, handler.body, handler.net2.timeout)
+                response = self.fetch(handler, method, url, headers, handler.body, handler.net2.connect_timeout)
                 if response.app_status < 500:
                     break
                 else:
@@ -634,7 +634,7 @@ class PHPFetchPlugin(BaseFetchPlugin):
         crlf = 0
         cache_key = '%s//:%s' % urlparse.urlsplit(fetchserver)[:2]
         try:
-            response = handler.net2.create_http_request('POST', fetchserver, request_headers, body, handler.net2.timeout, crlf=crlf, cache_key=cache_key)
+            response = handler.net2.create_http_request('POST', fetchserver, request_headers, body, handler.net2.connect_timeout, crlf=crlf, cache_key=cache_key)
         except Exception as e:
             logging.warning('%s "%s" failed %r', method, url, e)
             return
@@ -1301,11 +1301,10 @@ class Common(object):
         self.GAE_SSLVERSION = self.CONFIG.get('gae', 'sslversion')
         self.GAE_PAGESPEED = self.CONFIG.getint('gae', 'pagespeed') if self.CONFIG.has_option('gae', 'pagespeed') else 0
         self.GAE_READBODY = self.CONFIG.getint('gae', 'readbody') if self.CONFIG.has_option('gae', 'readbody') else 1024 * 1024 * 1024
-        self.GAE_CONNECT_TIMEOUT = self.CONFIG.getint('gae', 'connect_timeout') if self.CONFIG.has_option('gae', 'connect_timeout') else 10
         self.GAE_TIMEOUT = self.CONFIG.getint('gae', 'timeout') if self.CONFIG.has_option('gae', 'timeout') else 18
-        AdvancedNet2.connect_timeout_default = self.GAE_CONNECT_TIMEOUT
+        AdvancedNet2.connect_timeout_default = self.GAE_TIMEOUT
         AdvancedNet2.timeout_default = self.GAE_TIMEOUT
-        DirectFetchPlugin.connect_timeout = self.GAE_CONNECT_TIMEOUT
+        DirectFetchPlugin.connect_timeout = self.GAE_TIMEOUT
         DirectFetchPlugin.read_timeout = self.GAE_TIMEOUT
 
         if self.GAE_IPV6:
