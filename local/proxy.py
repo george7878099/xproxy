@@ -433,7 +433,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
             try:
                 if rescue_bytes:
                     headers['Range'] = 'bytes=%d-' % rescue_bytes
-                response = self.fetch(handler, method, url, headers, handler.body, handler.net2.connect_timeout)
+                response = self.fetch(handler, method, url, headers, handler.body, handler.net2.timeout)
                 if response.app_status < 400:
                     break
                 else:
@@ -634,7 +634,7 @@ class PHPFetchPlugin(BaseFetchPlugin):
         crlf = 0
         cache_key = '%s//:%s' % urlparse.urlsplit(fetchserver)[:2]
         try:
-            response = handler.net2.create_http_request('POST', fetchserver, request_headers, body, handler.net2.connect_timeout, crlf=crlf, cache_key=cache_key)
+            response = handler.net2.create_http_request('POST', fetchserver, request_headers, body, handler.net2.timeout, crlf=crlf, cache_key=cache_key)
         except Exception as e:
             logging.warning('%s "%s" failed %r', method, url, e)
             return
@@ -660,40 +660,6 @@ class VPSServer(gevent.server.StreamServer):
         self.fetchservers = kwargs.pop('fetchservers')
         gevent.server.StreamServer.__init__(self, *args, **kwargs)
         self.remote_cache = {}
-
-    def forward_socket(self, local, remote, timeout, bufsize):
-        """forward socket"""
-        tick = 1
-        count = timeout
-        while 1:
-            count -= tick
-            if count <= 0:
-                break
-            ins, _, errors = select.select([local, remote], [], [local, remote], tick)
-            if remote in errors:
-                local.close()
-                remote.close()
-                return
-            if local in errors:
-                local.close()
-                remote.close()
-                return
-            if remote in ins:
-                data = remote.recv(bufsize)
-                if not data:
-                    remote.close()
-                    local.close()
-                    return
-                local.sendall(data)
-            if local in ins:
-                data = local.recv(bufsize)
-                if not data:
-                    remote.close()
-                    local.close()
-                    return
-                remote.sendall(data)
-            if ins:
-                count = timeout
 
     def handle(self, sock, addr):
         request_data = data = ''
@@ -721,7 +687,7 @@ class VPSServer(gevent.server.StreamServer):
         request_data = '%s\r\nProxy-Authorization: Baisic %s\r\n%s' % (request_line, base64.b64encode('%s:%s' % (username, password)).strip(), header_data)
         remote.sendall(request_data)
         try:
-            self.forward_socket(sock, remote, 60, bufsize=256*1024)
+            forward_socket(sock, remote, 60, bufsize=256*1024)
         except (socket.error, ssl.SSLError, OpenSSL.SSL.Error) as e:
             if e.args[0] not in (errno.ECONNABORTED, errno.ECONNRESET, errno.ENOTCONN, errno.EPIPE):
                 raise
