@@ -5,5 +5,5 @@ set GEVENT_RESOLVER=gevent.resolver_thread.Resolver
 
 cd /d %~dp0
 cd local
-start .\python27 .\proxy.py
+.\goagent-uv.exe
 cd ..
