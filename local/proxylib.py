@@ -1569,7 +1569,6 @@ class AdvancedNet2(Net2):
         self.ssl_connection_unknown_ipaddrs = {}
         self.ssl_connection_cachesock = False
         self.ssl_connection_keepalive = False
-        self.goodip = []
         self.iplist_alias = {}
         self.fixed_iplist = set([])
         self.host_map = collections.OrderedDict()

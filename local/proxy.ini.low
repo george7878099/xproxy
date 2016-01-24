@@ -46,6 +46,7 @@ translate.google.com = withgae,noforcehttps
 talk.google.com = google_talk
 talk.l.google.com = google_talk
 talkx.l.google.com = google_talk
+.google.cn = google_cn,forcehttps,fakehttps
 .appspot.com = google_hk,withgae
 .google.com = google_hk,forcehttps,fakehttps
 .google.com.hk = google_hk,forcehttps,fakehttps
