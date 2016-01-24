@@ -72,7 +72,6 @@ def read_config():
 			pass
 		set_config(iptool_config_tmp)
 	except KeyboardInterrupt:
-		addip.stop=True
 		set_config({("iptool","sleep_time"):300,
 		            ("addip","keep_ip"):8192,
 		            ("checkip","threads"):0,
@@ -87,6 +86,7 @@ def read_config():
 		            ("testip","interval"):5,
 		            ("testip","checkconn_addr"):"baidu.com",
 		            ("testip","checkconn_timeout"):2})
+		stop()
 	except:
 		set_config({("iptool","sleep_time"):300,
 		            ("addip","keep_ip"):8192,
@@ -129,6 +129,6 @@ if __name__ == '__main__':
 	try:
 		start()
 	except KeyboardInterrupt:
-		addip.stop=True
+		stop()
 	except:
 		print traceback.format_exc()
