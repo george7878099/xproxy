@@ -6,6 +6,7 @@ import os
 import sys
 import threading
 import time
+import traceback
 sys.path.append(os.path.dirname(__file__) or '.')
 
 import addip
@@ -18,6 +19,9 @@ config_lock=threading.Lock()
 iptool_config={("iptool","sleep_time"):0,
                ("addip","keep_ip"):8192,
                ("checkip","threads"):0,
+               ("checkip","threads_low"):0,
+               ("checkip","threads_low_count"):0,
+               ("checkip","threads_low_time"):0,
                ("checkip","timeout"):1,
                ("checkip","interval"):0,
                ("testip","special"):0,
@@ -37,6 +41,7 @@ def set_config(x):
 
 def get_config(a=None,b=None):
 	global iptool_config,config_lock
+	ret=None
 	if a==None and b==None:
 		config_lock.acquire()
 		ret=copy.deepcopy(iptool_config)
@@ -48,7 +53,7 @@ def get_config(a=None,b=None):
 	return ret
 
 def read_config():
-	global iptool_config_strings
+	global iptool_config_strings,global_iplist
 	conf=ConfigParser.ConfigParser()
 	try:
 		conf.read("iptool.ini")
@@ -58,12 +63,22 @@ def read_config():
 				iptool_config_tmp[i]=conf.getint(i[0],i[1])
 			else:
 				iptool_config_tmp[i]=conf.get(i[0],i[1])
+		try:
+			if global_iplist[iptool_config_tmp[("checkip","threads_low_count")]-1][0] <= iptool_config_tmp[("checkip","threads_low_time")]:
+				iptool_config_tmp[("checkip","threads")]=iptool_config_tmp[("checkip","threads_low")]
+		except KeyboardInterrupt:
+			raise
+		except:
+			pass
 		set_config(iptool_config_tmp)
 	except KeyboardInterrupt:
 		addip.stop=True
 		set_config({("iptool","sleep_time"):300,
 		            ("addip","keep_ip"):8192,
 		            ("checkip","threads"):0,
+		            ("checkip","threads_low"):0,
+		            ("checkip","threads_low_count"):0,
+		            ("checkip","threads_low_time"):0,
 		            ("checkip","timeout"):5,
 		            ("checkip","interval"):0,
 		            ("testip","special"):0,
@@ -76,6 +91,9 @@ def read_config():
 		set_config({("iptool","sleep_time"):300,
 		            ("addip","keep_ip"):8192,
 		            ("checkip","threads"):128,
+		            ("checkip","threads_low"):5,
+		            ("checkip","threads_low_count"):100,
+		            ("checkip","threads_low_time"):1000,
 		            ("checkip","timeout"):5,
 		            ("checkip","interval"):0,
 		            ("testip","special"):7,

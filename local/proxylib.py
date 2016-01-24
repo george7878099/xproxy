@@ -1543,6 +1543,7 @@ class AdvancedNet2(Net2):
     """getaliasbyname/gethostsbyname/create_tcp_connection/create_ssl_connection/create_http_request"""
     connect_timeout_default = 10
     timeout_default = 18
+    updateip = False
     def __init__(self, window=4, connect_timeout=None, timeout=None, ssl_version='TLSv1', dns_servers=['8.8.8.8', '114.114.114.114'], dns_blacklist=[], dns_cachesize=64*1024):
         if not connect_timeout: connect_timeout = self.connect_timeout_default
         if not timeout: timeout = self.timeout_default
@@ -1808,6 +1809,8 @@ class AdvancedNet2(Net2):
                 # record SSL connection time
                 self.ssl_connection_time[ipaddr] = ssl_sock.ssl_time = handshaked_time - start_time
                 ssl_sock.ssl_time = connected_time - start_time
+                if self.updateip:
+                    addip.addip(ipaddr[0], int(ssl_sock.ssl_time * 1000))
                 # sometimes, we want to use raw tcp socket directly(select/epoll), so setattr it to ssl socket.
                 ssl_sock.sock = sock
                 # remove from bad/unknown ipaddrs dict
@@ -1854,6 +1857,8 @@ class AdvancedNet2(Net2):
                 queobj.put(e)
                 # reset a large and random timeout to the ipaddr
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
+                if self.updateip:
+                    addip.addip(ipaddr[0], 2147483647)
                 # add to bad ipaddrs dict
                 if ipaddr[0] in self.fixed_iplist:
                     logging.debug('bad IP: %s (%r)', ipaddr, e)
@@ -1908,6 +1913,8 @@ class AdvancedNet2(Net2):
                 self.tcp_connection_time[ipaddr] = ssl_sock.tcp_time = connected_time - start_time
                 # record SSL connection time
                 self.ssl_connection_time[ipaddr] = ssl_sock.ssl_time = handshaked_time - start_time
+                if self.updateip:
+                    addip.addip(ipaddr[0], int(ssl_sock.ssl_time * 1000))
                 # sometimes, we want to use raw tcp socket directly(select/epoll), so setattr it to ssl socket.
                 ssl_sock.sock = sock
                 # remove from bad/unknown ipaddrs dict
@@ -1952,6 +1959,8 @@ class AdvancedNet2(Net2):
                 queobj.put(e)
                 # reset a large and random timeout to the ipaddr
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
+                if self.updateip:
+                    addip.addip(ipaddr[0], 2147483647)
                 # add to bad ipaddrs dict
                 if ipaddr[0] in self.fixed_iplist:
                     logging.debug('bad IP: %s (%r)', ipaddr, e)

@@ -6,6 +6,9 @@ keep_ip = 8192
 
 [checkip]
 threads = 32
+threads_low = 5
+threads_low_count = 100
+threads_low_time = 1000
 timeout = 5
 interval = 8
 

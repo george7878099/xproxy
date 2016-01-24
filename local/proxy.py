@@ -1302,10 +1302,12 @@ class Common(object):
         self.GAE_PAGESPEED = self.CONFIG.getint('gae', 'pagespeed') if self.CONFIG.has_option('gae', 'pagespeed') else 0
         self.GAE_READBODY = self.CONFIG.getint('gae', 'readbody') if self.CONFIG.has_option('gae', 'readbody') else 1024 * 1024 * 1024
         self.GAE_TIMEOUT = self.CONFIG.getint('gae', 'timeout') if self.CONFIG.has_option('gae', 'timeout') else 18
+        self.GAE_UPDATEIP = self.CONFIG.getint('gae', 'updateip') if self.CONFIG.has_option('gae', 'updateip') else 0
         AdvancedNet2.connect_timeout_default = self.GAE_TIMEOUT
         AdvancedNet2.timeout_default = self.GAE_TIMEOUT
         DirectFetchPlugin.connect_timeout = self.GAE_TIMEOUT
         DirectFetchPlugin.read_timeout = self.GAE_TIMEOUT
+        AdvancedNet2.updateip = self.GAE_UPDATEIP
 
         if self.GAE_IPV6:
             sock = None
