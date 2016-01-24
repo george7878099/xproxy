@@ -2,5 +2,5 @@
 
 cd /d %~dp0
 cd local
-.\goagent.exe
+start .\goagent.exe
 cd ..
