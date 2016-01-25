@@ -39,35 +39,33 @@ def addip(ip, costtime):
 	iplist = []
 	if ip:
 		addtolist([ip, str(costtime)], iplist, ipset)
-	lock.acquire()
 	try:
-		ff = open(dst, "a")
-		ff.close()
-		ff = open(dst, "r")
-		for strs in ff:
-			addtolist(strs.strip("\n").strip("\r").split(" "), iplist, ipset)
-		ff.close()
-		iplist.sort()
-		iplist = iplist[:min(iptool.get_config("addip", "keep_ip"), len(iplist))]
-		iptool.global_iplist = iplist
-		if stop:
-			iptool.stop()
-		ff = open(tmpdst, "w")
-		for i in iplist:
-			ff.write(i[2] + " " + (str(i[0]) if i[0] >= 0 else "1000") + "\n")
-		ff.close()
-		begin_time = time.time()
-		while True:
-			try:
-				os.remove(dst)
-			except OSError:
-				cur_time = time.time()
-				if cur_time >= begin_time and cur_time-begin_time <= 2:
-					continue
-			break
-		os.rename(tmpdst, dst)
+		with lock:
+			with open(dst, "a"):
+				pass
+			with open(dst, "r") as ff:
+				for strs in ff:
+					addtolist(strs.strip("\n").strip("\r").split(" "), iplist, ipset)
+			iplist.sort()
+			iplist = iplist[:min(iptool.get_config("addip", "keep_ip"), len(iplist))]
+			iptool.global_iplist = iplist
+			if stop:
+				iptool.stop()
+			if ip:
+				with open(tmpdst, "w") as ff:
+					for i in iplist:
+						ff.write(i[2] + " " + (str(i[0]) if i[0] >= 0 else "1000") + "\n")
+				begin_time = time.time()
+				while True:
+					try:
+						os.remove(dst)
+					except OSError:
+						cur_time = time.time()
+						if cur_time >= begin_time and cur_time-begin_time <= 2:
+							continue
+					break
+				os.rename(tmpdst, dst)
 	except KeyboardInterrupt:
 		iptool.stop()
 	except:
 		pass
-	lock.release()

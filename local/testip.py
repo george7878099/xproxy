@@ -82,26 +82,17 @@ def testipwork(mode):
 		time.sleep(0.01)
 		iperror=True
 		ip=""
-		with open(g_testipfile,"r") as f:
-			if mode>0:
-				for i in range(mode):
-					tmpline=f.readline()
-					if tmpline!="":ip=tmpline
-					else:break
-			else:
-				lst=[]
-				for i in f:
-					lst.append(i)
-				if len(lst)==0:ip=""
-				else:ip=random.choice(lst)
-		ip_split=ip.strip('\n').strip('\r').split(' ')
+		addip.addip("", 0)
 		try:
-			if len(ip_split)>1 and int(ip_split[1])==2147483647:
-				iperror=False
-		except ValueError:
+			if mode>0:
+				ip = iptool.global_iplist[mode - 1][2]
+			else:
+				ip = random.choice(iptool.global_iplist)[2]
+		except KeyboardInterrupt:
+			raise
+		except:
 			pass
-		ip=ip_split[0]
-		if ip!="":
+		if ip:
 			lock.acquire()
 			isin=ip in checklst
 			if not isin:
