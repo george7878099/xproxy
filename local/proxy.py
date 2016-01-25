@@ -207,7 +207,6 @@ from proxylib import SimpleProxyHandler
 from proxylib import spawn_later
 from proxylib import StaticFileFilter
 from proxylib import StripPlugin
-from proxylib import StripPluginEx
 from proxylib import URLRewriteFilter
 from proxylib import UserAgentFilter
 from proxylib import XORCipher
@@ -765,22 +764,28 @@ class GAEProxyHandler(SimpleProxyHandler):
             common.resolve_iplist()
         random.shuffle(common.GAE_APPIDS)
         self.__class__.handler_plugins['gae'] = GAEFetchPlugin(common.GAE_APPIDS, common.GAE_PASSWORD, common.GAE_PATH, common.GAE_MODE, common.GAE_CACHESOCK, common.GAE_KEEPALIVE, common.GAE_OBFUSCATE, common.GAE_PAGESPEED, common.GAE_VALIDATE, common.GAE_OPTIONS)
+        net2 = None
         if not common.PROXY_ENABLE:
             net2 = AdvancedNet2(window=common.GAE_WINDOW, ssl_version=common.GAE_SSLVERSION, dns_servers=common.DNS_SERVERS, dns_blacklist=common.DNS_BLACKLIST)
-            for name, iplist in common.IPLIST_ALIAS.items():
-                net2.add_iplist_alias(name, iplist)
-                if name == 'google_hk':
-                    for delay in (30, 60, 150, 240, 300, 450, 600, 900):
-                        spawn_later(delay, self.extend_iplist, name)
-            net2.add_fixed_iplist(common.IPLIST_PREDEFINED)
-            for pattern, hosts in common.RULE_MAP.items():
-                net2.add_rule(pattern, hosts)
-            if common.GAE_CACHESOCK:
-                net2.enable_connection_cache()
-            if common.GAE_KEEPALIVE:
-                net2.enable_connection_keepalive()
-            net2.enable_openssl_session_cache()
-            self.__class__.net2 = net2
+        else:
+            net2 = self.__class__.net2
+            net2.max_window = common.GAE_WINDOW
+            net2.ssl_version = getattr(ssl, 'PROTOCOL_%s' % common.GAE_SSLVERSION)
+            net2.dns_servers = common.DNS_SERVERS
+            net2.dns_blacklist = common.DNS_BLACKLIST
+        for name, iplist in common.IPLIST_ALIAS.items():
+            net2.add_iplist_alias(name, iplist)
+            if name == 'google_hk':
+                for delay in (30, 60, 150, 240, 300, 450, 600, 900):
+                    spawn_later(delay, self.extend_iplist, name)
+        net2.add_fixed_iplist(common.IPLIST_PREDEFINED)
+        for pattern, hosts in common.RULE_MAP.items():
+            net2.add_rule(pattern, hosts)
+        if common.GAE_CACHESOCK:
+            net2.enable_connection_cache()
+        if common.GAE_KEEPALIVE:
+            net2.enable_connection_keepalive()
+        self.__class__.net2 = net2
 
     def extend_iplist(self, iplist_name):
         hosts = [x for x in common.CONFIG.get('iplist', iplist_name).split('|') if not re.match(r'^\d+\.\d+\.\d+\.\d+$', x) and ':' not in x]
@@ -844,19 +849,23 @@ class PHPProxyHandler(SimpleProxyHandler):
 
     def first_run(self):
         """PHPProxyHandler setup, init domain/iplist map"""
+        hostname = urlparse.urlsplit(common.PHP_FETCHSERVER).hostname
+        net2 = None
         if not common.PROXY_ENABLE:
-            hostname = urlparse.urlsplit(common.PHP_FETCHSERVER).hostname
             net2 = AdvancedNet2(window=4, ssl_version='TLSv1', dns_servers=common.DNS_SERVERS, dns_blacklist=common.DNS_BLACKLIST)
-            if not common.PHP_HOSTS:
-                common.PHP_HOSTS = net2.gethostsbyname(hostname)
-            net2.add_iplist_alias('php_fetchserver', common.PHP_HOSTS)
-            net2.add_fixed_iplist(common.PHP_HOSTS)
-            net2.add_rule(hostname, 'php_fetchserver')
-            net2.enable_connection_cache()
-            if common.PHP_KEEPALIVE:
-                net2.enable_connection_keepalive()
-            net2.enable_openssl_session_cache()
-            self.__class__.net2 = net2
+        else:
+            net2 = self.__class__.net2
+            net2.dns_servers = common.DNS_SERVERS
+            net2.dns_blacklist = common.DNS_BLACKLIST
+        if not common.PHP_HOSTS:
+            common.PHP_HOSTS = net2.gethostsbyname(hostname)
+        net2.add_iplist_alias('php_fetchserver', common.PHP_HOSTS)
+        net2.add_fixed_iplist(common.PHP_HOSTS)
+        net2.add_rule(hostname, 'php_fetchserver')
+        net2.enable_connection_cache()
+        if common.PHP_KEEPALIVE:
+            net2.enable_connection_keepalive()
+        self.__class__.net2 = net2
 
 
 class PacUtil(object):
@@ -1303,6 +1312,7 @@ class Common(object):
         self.GAE_READBODY = self.CONFIG.getint('gae', 'readbody') if self.CONFIG.has_option('gae', 'readbody') else 1024 * 1024 * 1024
         self.GAE_TIMEOUT = self.CONFIG.getint('gae', 'timeout') if self.CONFIG.has_option('gae', 'timeout') else 18
         self.GAE_UPDATEIP = self.CONFIG.getint('gae', 'updateip') if self.CONFIG.has_option('gae', 'updateip') else 0
+        DirectFetchPlugin.validate = self.GAE_VALIDATE
         AdvancedNet2.connect_timeout_default = self.GAE_TIMEOUT
         AdvancedNet2.timeout_default = self.GAE_TIMEOUT
         DirectFetchPlugin.connect_timeout = self.GAE_TIMEOUT
@@ -1671,7 +1681,6 @@ def main():
         VPSServer.net2 = AdvancedNet2(window=2, ssl_version='SSLv23', dns_servers=common.DNS_SERVERS, dns_blacklist=common.DNS_BLACKLIST)
         VPSServer.net2.enable_connection_cache()
         VPSServer.net2.enable_connection_keepalive()
-        VPSServer.net2.enable_openssl_session_cache()
         VPSServer.net2.openssl_context.set_cipher_list('RC4-MD5:RC4-SHA:!aNULL:!eNULL')
         vps_server = VPSServer((host, int(port)), backlog=1024, fetchservers=common.VPS_FETCHSERVER.split('|'))
         thread.start_new_thread(vps_server.serve_forever, tuple())
@@ -1679,8 +1688,6 @@ def main():
     if common.GAE_ENABLE:
         if common.PHP_ENABLE:
             GAEProxyHandler.handler_plugins['php'] = php_server.RequestHandlerClass.handler_plugins['php']
-        #if os.name == 'nt':
-        #    GAEProxyHandler.handler_plugins['strip'] = StripPluginEx()
         gae_server = LocalProxyServer((common.LISTEN_IP, common.LISTEN_PORT), GAEProxyHandler)
         thread.start_new_thread(gae_server.serve_forever, tuple())
 
