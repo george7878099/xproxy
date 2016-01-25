@@ -19,32 +19,6 @@ import iptool
 
 g_filedir = os.path.dirname(__file__)
 g_checkipfile = os.path.join(g_filedir,"ip.txt")
-g_cacertfile = os.path.join(g_filedir, "cacert.pem")
-
-# Re-add sslwrap to Python 2.7.9
-import inspect
-__ssl__ = __import__('ssl')
-
-try:
-	_ssl = __ssl__._ssl
-except AttributeError:
-	_ssl = __ssl__._ssl2
-
-def new_sslwrap(sock, server_side=False, keyfile=None, certfile=None, cert_reqs=__ssl__.CERT_NONE, ssl_version=__ssl__.PROTOCOL_SSLv23, ca_certs=None, ciphers=None):
-	context = __ssl__.SSLContext(ssl_version)
-	context.verify_mode = cert_reqs or __ssl__.CERT_NONE
-	if ca_certs:
-		context.load_verify_locations(ca_certs)
-	if certfile:
-		context.load_cert_chain(certfile, keyfile)
-	if ciphers:
-		context.set_ciphers(ciphers)
-
-	caller_self = inspect.currentframe().f_back.f_locals['self']
-	return context._wrap_socket(sock, server_side=server_side, ssl_sock=caller_self)
-
-if not hasattr(_ssl, 'sslwrap'):
-	_ssl.sslwrap = new_sslwrap
 
 def iptoint(ip):
 	try:
@@ -151,13 +125,7 @@ def checkipwork():
 				time.sleep(5)
 			addip.sleep_before=0
 			costtime=time.time()
-			s=socket.socket(socket.AF_INET)
-			s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
-			s.setsockopt(socket.SOL_TCP,socket.TCP_NODELAY,True)
-			s.settimeout(iptool.get_config("checkip","timeout"))
-			c=ssl.wrap_socket(s,cert_reqs=ssl.CERT_REQUIRED,ca_certs=g_cacertfile,ciphers='ECDHE-RSA-AES128-SHA')
-			c.settimeout(iptool.get_config("checkip","timeout"))
-			c.connect((ip, 443))
+			c = iptool.create_ssl_socket(ip, iptool.get_config("checkip","timeout"))
 			costtime=int(time.time()*1000-costtime*1000)
 			cert = c.getpeercert()
 			if 'subject' in cert:

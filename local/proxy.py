@@ -1413,7 +1413,7 @@ class Common(object):
         self.PROXY_HOST = self.CONFIG.get('proxy', 'host')
         self.PROXY_PORT = self.CONFIG.getint('proxy', 'port')
         self.PROXY_USERNAME = self.CONFIG.get('proxy', 'username')
-        self.PROXY_PASSWROD = self.CONFIG.get('proxy', 'password')
+        self.PROXY_PASSWORD = self.CONFIG.get('proxy', 'password')
 
         if not self.PROXY_ENABLE and self.PROXY_AUTODETECT:
             system_proxy = ProxyUtil.get_system_proxy()
@@ -1422,11 +1422,16 @@ class Common(object):
                 proxyhost, _, proxyport = address.rpartition(':')
                 self.PROXY_ENABLE = 1
                 self.PROXY_USERNAME = username
-                self.PROXY_PASSWROD = password
+                self.PROXY_PASSWORD = password
                 self.PROXY_HOST = proxyhost
                 self.PROXY_PORT = int(proxyport)
         if self.PROXY_ENABLE:
             self.GAE_MODE = 'https'
+            iptool.proxy_enable = True
+            iptool.proxy_host = self.PROXY_HOST
+            iptool.proxy_port = self.PROXY_PORT
+            iptool.proxy_username = self.PROXY_USERNAME
+            iptool.proxy_password = self.PROXY_PASSWORD
 
         self.AUTORANGE_HOSTS = self.CONFIG.get('autorange', 'hosts').split('|')
         self.AUTORANGE_ENDSWITH = tuple(self.CONFIG.get('autorange', 'endswith').split('|'))
@@ -1662,11 +1667,11 @@ def main():
 
     if common.PROXY_ENABLE:
         if common.GAE_ENABLE:
-            GAEProxyHandler.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWROD)
+            GAEProxyHandler.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWORD)
         if common.PHP_ENABLE:
-            PHPProxyHandler.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWROD)
+            PHPProxyHandler.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWORD)
         if common.VPS_ENABLE:
-            VPSServer.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWROD)
+            VPSServer.net2 = ProxyNet2(common.PROXY_HOST, common.PROXY_PORT, common.PROXY_USERNAME, common.PROXY_PASSWORD)
 
     php_server = None
     if common.PHP_ENABLE:
