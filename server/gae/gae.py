@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding:utf-8
 
-__version__ = '3.2.0'
+__version__ = '4.0.0'
 __password__ = ''
 __hostsdeny__ = ()  # __hostsdeny__ = ('.youtube.com', '.youku.com')
 
@@ -198,16 +198,16 @@ def application(environ, start_response):
             response = urlfetch.fetch(url, body, fetchmethod, headers, allow_truncated=False, follow_redirects=False, deadline=timeout, validate_certificate=validate_certificate)
             break
         except apiproxy_errors.OverQuotaError as e:
-            time.sleep(5)
+            start_response('500 Internal Server Error', [('Content-Type', 'text/html; charset=utf-8')])
+            yield message_html('500 Urlfetch Error', 'Urlfetch Over Quota')
+            raise StopIteration
         except urlfetch.DeadlineExceededError as e:
             errors.append('%r, timeout=%s' % (e, timeout))
             logging.error('DeadlineExceededError(timeout=%s, url=%r)', timeout, url)
-            time.sleep(1)
             timeout *= 2
         except urlfetch.DownloadError as e:
             errors.append('%r, timeout=%s' % (e, timeout))
             logging.error('DownloadError(timeout=%s, url=%r)', timeout, url)
-            time.sleep(1)
             timeout *= 2
         except urlfetch.ResponseTooLargeError as e:
             errors.append('%r, timeout=%s' % (e, timeout))

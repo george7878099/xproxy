@@ -441,7 +441,7 @@ class GAEFetchPlugin(BaseFetchPlugin):
                         if len(self.appids) > 1:
                             self.appids.append(self.appids.pop(0))
                             logging.info('gae over quota, switch to next appid=%r', self.appids[0])
-                    elif i < self.max_retry - 1 and len(self.appids) > 1:
+                    elif response.app_status != 502 and i < self.max_retry - 1 and len(self.appids) > 1:
                         self.appids.append(self.appids.pop(0))
                         logging.info('URLFETCH return %d, trying next appid=%r', response.app_status, self.appids[0])
                     if i < self.max_retry - 1:
