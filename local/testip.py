@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
 
+import collections
 import os
 import sys
 import socket
@@ -75,6 +76,15 @@ def testipsleep():
 		time.sleep(1)
 		i+=1
 
+records = collections.deque()
+records_lock = threading.Lock()
+
+def testiprecord(time):
+	with records_lock:
+		records.appendleft(time)
+		while len(records) > iptool.get_config("testip", "records"):
+			records.pop()
+
 def testipwork(mode):
 	global lock,checklst
 	ipvalid=False
@@ -84,64 +94,64 @@ def testipwork(mode):
 		ip=""
 		addip.addip("", 0)
 		try:
-			if mode>0:
-				ip = iptool.global_iplist[mode - 1][2]
+			if mode > 0:
+				ip = [x[2] for x in iptool.global_iplist[:iptool.get_config("testip","special")]]
 			else:
-				ip = random.choice(iptool.global_iplist)[2]
+				ip = [x[2] for x in iptool.global_iplist]
+			with lock:
+				ip = [x for x in ip if x not in checklst]
+				ip = random.choice(ip)
+				checklst.add(ip)
 		except KeyboardInterrupt:
 			raise
 		except:
-			pass
+			ip = ""
 		if ip:
-			lock.acquire()
-			isin=ip in checklst
-			if not isin:
-				checklst.add(ip)
-				lock.release()
-				ipvalid=True
-				while time.time()<addip.sleep_before:
-					if(addip.sleep_before-time.time()>iptool.get_config("iptool","sleep_time")):addip.sleep_before=0
-					time.sleep(5)
-				addip.sleep_before=0
-				while (not checkconnect(iptool.get_config("testip","checkconn_addr"))):
-					time.sleep(1)
-				costtime=time.time()
-				c = iptool.create_ssl_socket(ip, iptool.get_config("testip","timeout"))
-				costtime=int(time.time()*1000-costtime*1000)
-				cert = c.getpeercert()
-				if 'subject' in cert:
-					for i in cert['subject']:
-						if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-							c.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
-							response=httplib.HTTPResponse(c,buffering=True)
-							response.begin()
-							if "Google Frontend" in response.msg.dict["server"]:
-								iperror=False
-								addip.addip(ip,costtime)
-							elif "google.com/sorry/" in response.msg.dict["location"]:
-								iperror=False
-								addip.sleeplock.acquire()
+			ipvalid=True
+			while time.time()<addip.sleep_before:
+				if(addip.sleep_before-time.time()>iptool.get_config("iptool","sleep_time")):addip.sleep_before=0
+				time.sleep(5)
+			addip.sleep_before=0
+			while (not checkconnect(iptool.get_config("testip","checkconn_addr"))):
+				time.sleep(1)
+			costtime=time.time()
+			c = iptool.create_ssl_socket(ip, iptool.get_config("testip","timeout"))
+			costtime=int(time.time()*1000-costtime*1000)
+			cert = c.getpeercert()
+			if 'subject' in cert:
+				for i in cert['subject']:
+					if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
+						c.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
+						response=httplib.HTTPResponse(c,buffering=True)
+						response.begin()
+						if "Google Frontend" in response.msg.dict["server"]:
+							iperror=False
+							addip.addip(ip,costtime)
+							testiprecord(costtime)
+						elif "google.com/sorry/" in response.msg.dict["location"]:
+							iperror=False
+							with addip.sleeplock:
 								if addip.sleep_before==0:
 									logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
 								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
-								addip.sleeplock.release()
-							break
-				c.close()
-			else:
-				lock.release()
-				time.sleep(1)
+						break
+			c.close()
+		else:
+			time.sleep(1)
 	except KeyboardInterrupt:
 		iptool.stop()
 	except:
 		pass
 	if ipvalid:
-		if iperror:
-			if checkconnect(iptool.get_config("testip","checkconn_addr")):
-				addip.addip(ip,2147483647)
-		testipsleep()
-		lock.acquire()
-		checklst.remove(ip)
-		lock.release()
+		try:
+			if iperror:
+				if checkconnect(iptool.get_config("testip","checkconn_addr")):
+					addip.addip(ip, addip.TIME_INF)
+					testiprecord(addip.TIME_INF)
+			testipsleep()
+		finally:
+			with lock:
+				checklst.remove(ip)
 
 def testip(mode):
 	global special,special_lock,threadcnt,threadcnt_lock
@@ -149,27 +159,22 @@ def testip(mode):
 		while True:
 			if mode>0:
 				if mode>iptool.get_config("testip","special"):
-					special_lock.acquire()
-					special.remove(mode)
-					special_lock.release()
+					with special_lock:
+						special.remove(mode)
 					return
 			else:
-				threadcnt_lock.acquire()
-				if threadcnt>iptool.get_config("testip","threads"):
-					threadcnt-=1
-					threadcnt_lock.release()
-					return
-				threadcnt_lock.release()
+				with threadcnt_lock:
+					if threadcnt>iptool.get_config("testip","threads"):
+						threadcnt-=1
+						return
 			testipwork(mode)
 	except KeyboardInterrupt:
 		iptool.stop()
 	except:
 		logging.exception("testip exception")
 		if mode>0:
-			special_lock.acquire()
-			special.remove(mode)
-			special_lock.release()
+			with special_lock:
+				special.remove(mode)
 		else:
-			threadcnt_lock.acquire()
-			threadcnt-=1
-			threadcnt_lock.release()
+			with threadcnt_lock:
+				threadcnt-=1

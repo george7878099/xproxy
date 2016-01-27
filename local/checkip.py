@@ -138,11 +138,10 @@ def checkipwork():
 							addip.addip(ip,costtime)
 							logging.info("found ip %s, %d ms", ip, costtime)
 						elif "google.com/sorry/" in response.msg.dict["location"]:
-							addip.sleeplock.acquire()
-							if addip.sleep_before==0:
-								logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
-							addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
-							addip.sleeplock.release()
+							with addip.sleeplock:
+								if addip.sleep_before==0:
+									logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
+								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
 						break
 			c.close()
 		else:
@@ -152,26 +151,24 @@ def checkipwork():
 	except:
 		pass
 	if ipvalid:
-		checkipsleep()
-		lock.acquire()
-		checklst.remove(ip)
-		lock.release()
+		try:
+			checkipsleep()
+		finally:
+			with lock:
+				checklst.remove(ip)
 
 def checkip():
 	global threadcnt,threadcnt_lock
 	try:
 		while True:
-			threadcnt_lock.acquire()
-			if threadcnt>iptool.get_config("checkip","threads"):
-				threadcnt-=1
-				threadcnt_lock.release()
-				return
-			threadcnt_lock.release()
+			with threadcnt_lock:
+				if threadcnt>iptool.get_config("checkip","threads"):
+					threadcnt-=1
+					return
 			checkipwork()
 	except KeyboardInterrupt:
 		iptool.stop()
 	except:
 		logging.exception("checkip exception")
-		threadcnt_lock.acquire()
-		threadcnt-=1
-		threadcnt_lock.release()
+		with threadcnt_lock:
+			threadcnt-=1

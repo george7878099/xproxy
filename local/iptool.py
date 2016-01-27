@@ -51,6 +51,8 @@ iptool_config={("iptool","sleep_time"):0,
                ("checkip","threads_low"):0,
                ("checkip","threads_low_count"):0,
                ("checkip","threads_low_time"):0,
+               ("checkip","threads_low_testip_count"):0,
+               ("checkip","threads_low_testip_time"):0,
                ("checkip","timeout"):1,
                ("checkip","interval"):0,
                ("testip","special"):0,
@@ -58,23 +60,22 @@ iptool_config={("iptool","sleep_time"):0,
                ("testip","timeout"):1,
                ("testip","interval"):1,
                ("testip","checkconn_addr"):"baidu.com",
-               ("testip","checkconn_timeout"):2}
+               ("testip","checkconn_timeout"):2,
+               ("testip","records"):25}
 
 iptool_config_strings=set([("testip","checkconn_addr")])
 
 def set_config(x):
 	global iptool_config,config_lock
-	config_lock.acquire()
-	iptool_config=copy.deepcopy(x)
-	config_lock.release()
+	with config_lock:
+		iptool_config=copy.deepcopy(x)
 
 def get_config(a=None,b=None):
 	global iptool_config,config_lock
 	ret=None
 	if a==None and b==None:
-		config_lock.acquire()
-		ret=copy.deepcopy(iptool_config)
-		config_lock.release()
+		with config_lock:
+			ret=copy.deepcopy(iptool_config)
 	else:
 		with config_lock:
 			ret=copy.deepcopy(iptool_config[(a,b)])
@@ -94,7 +95,16 @@ def read_config():
 		try:
 			addip.addip('', 0)
 			if global_iplist[iptool_config_tmp[("checkip","threads_low_count")]-1][0] <= iptool_config_tmp[("checkip","threads_low_time")]:
-				iptool_config_tmp[("checkip","threads")]=iptool_config_tmp[("checkip","threads_low")]
+				list_tmp = None
+				with testip.records_lock:
+					list_tmp = list(testip.records)
+				list_tmp = list_tmp[:iptool_config_tmp[("testip", "records")]]
+				count = 0
+				for x in list_tmp:
+					if x <= iptool_config_tmp[("checkip", "threads_low_testip_time")]:
+						count += 1
+				if count >= iptool_config_tmp[("checkip", "threads_low_testip_count")]:
+					iptool_config_tmp[("checkip","threads")] = iptool_config_tmp[("checkip","threads_low")]
 		except KeyboardInterrupt:
 			raise
 		except:
@@ -107,14 +117,17 @@ def read_config():
 		            ("checkip","threads_low"):0,
 		            ("checkip","threads_low_count"):0,
 		            ("checkip","threads_low_time"):0,
+		            ("checkip","threads_low_testip_count"):0,
+		            ("checkip","threads_low_testip_time"):0,
 		            ("checkip","timeout"):5,
 		            ("checkip","interval"):0,
 		            ("testip","special"):0,
 		            ("testip","threads"):0,
-		            ("testip","timeout"):5,
-		            ("testip","interval"):5,
+		            ("testip","timeout"):8,
+		            ("testip","interval"):120,
 		            ("testip","checkconn_addr"):"baidu.com",
-		            ("testip","checkconn_timeout"):2})
+		            ("testip","checkconn_timeout"):2,
+		            ("testip","records"):25})
 		stop()
 	except:
 		set_config({("iptool","sleep_time"):300,
@@ -123,14 +136,17 @@ def read_config():
 		            ("checkip","threads_low"):5,
 		            ("checkip","threads_low_count"):100,
 		            ("checkip","threads_low_time"):1000,
+		            ("checkip","threads_low_testip_count"):5,
+		            ("checkip","threads_low_testip_time"):1000,
 		            ("checkip","timeout"):5,
 		            ("checkip","interval"):0,
-		            ("testip","special"):7,
+		            ("testip","special"):10,
 		            ("testip","threads"):10,
-		            ("testip","timeout"):5,
-		            ("testip","interval"):5,
+		            ("testip","timeout"):8,
+		            ("testip","interval"):120,
 		            ("testip","checkconn_addr"):"baidu.com",
-		            ("testip","checkconn_timeout"):2})
+		            ("testip","checkconn_timeout"):2,
+		            ("testip","records"):25})
 
 proxy_enable = False
 proxy_host = ''

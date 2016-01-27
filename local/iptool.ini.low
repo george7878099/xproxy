@@ -9,11 +9,13 @@ threads = 32
 threads_low = 5
 threads_low_count = 100
 threads_low_time = 1000
+threads_low_testip_count = 3
+threads_low_testip_time = 1000
 timeout = 5
 interval = 8
 
 [testip]
-special = 5
+special = 6
 ; testip uses these threads to test the first [special] IPs
 threads = 10
 ; threads except the special ones
@@ -22,3 +24,5 @@ interval = 300
 checkconn_addr = baidu.com
 ; must support https to ensure an authentic website
 checkconn_timeout = 5
+records = 20
+; records for checkip threads_low mode

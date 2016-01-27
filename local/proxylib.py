@@ -1716,7 +1716,7 @@ class AdvancedNet2(Net2):
                 # reset a large and random timeout to the ipaddr
                 self.ssl_connection_time[ipaddr] = self.connect_timeout + random.random()
                 if (hostname.endswith('.appspot.com') or '.google' in hostname) and self.updateip:
-                    addip.addip(ipaddr[0], 2147483647)
+                    addip.addip(ipaddr[0], addip.TIME_INF)
                 # add to bad ipaddrs dict
                 if ipaddr[0] in self.fixed_iplist:
                     logging.debug('bad IP: %s (%r)', ipaddr, e)

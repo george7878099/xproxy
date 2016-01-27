@@ -11,6 +11,8 @@ sys.path.append(os.path.dirname(__file__) or '.')
 
 import iptool
 
+TIME_INF = 2147483647
+
 dst = "good_ip.txt"
 tmpdst = "good_ip_tmp.tmp"
 lock = threading.Lock()
