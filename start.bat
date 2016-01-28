@@ -2,5 +2,5 @@
 
 cd /d %~dp0
 cd local
-start .\goagent.exe
+start .\xproxy.exe
 cd ..
