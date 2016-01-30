@@ -127,22 +127,9 @@ def checkipwork():
 			costtime=time.time()
 			c = iptool.create_ssl_socket(ip, iptool.get_config("checkip","timeout"))
 			costtime=int(time.time()*1000-costtime*1000)
-			cert = c.getpeercert()
-			if 'subject' in cert:
-				for i in cert['subject']:
-					if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-						c.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
-						response=httplib.HTTPResponse(c,buffering=True)
-						response.begin()
-						if "Google Frontend" in response.msg.dict["server"]:
-							addip.addip(ip,costtime)
-							logging.info("found ip %s, %d ms", ip, costtime)
-						elif "google.com/sorry/" in response.msg.dict["location"]:
-							with addip.sleeplock:
-								if addip.sleep_before==0:
-									logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
-								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
-						break
+			if iptool.test_connection(c)==iptool.TEST_OK:
+				addip.addip(ip,costtime)
+				logging.info("found ip %s, %d ms", ip, costtime)
 			c.close()
 		else:
 			lock.release()

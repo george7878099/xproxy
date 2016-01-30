@@ -190,6 +190,29 @@ def create_ssl_socket(ip, timeout):
 		c.do_handshake()
 	return c
 
+TEST_FAILED = 1
+TEST_OK = 2
+TEST_UNDEFINED = 4
+
+def test_connection(sock):
+	cert = sock.getpeercert()
+	if 'subject' in cert:
+		for i in cert['subject']:
+			if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
+				sock.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
+				response=httplib.HTTPResponse(sock,buffering=True)
+				response.begin()
+				if "Google Frontend" in response.msg.dict["server"]:
+					return TEST_OK
+				elif "google.com/sorry/" in response.msg.dict["location"]:
+					with addip.sleeplock:
+						if addip.sleep_before==0:
+							logging.warn("iptool sleeps for %d secs", get_config("iptool","sleep_time"))
+						addip.sleep_before=time.time()+get_config("iptool","sleep_time")
+					return TEST_UNDEFINED
+				break
+	return TEST_FAILED
+
 def start():
 	read_config()
 

@@ -21,7 +21,7 @@ import iptool
 g_filedir = os.path.dirname(__file__)
 g_testipfile = os.path.join(g_filedir,"good_ip.txt")
 
-def checkconnect(addr):
+def checkconnection(addr):
 	try:
 		if iptool.get_config("testip","checkconn_timeout")<0:
 			return True
@@ -112,29 +112,18 @@ def testipwork(mode):
 				if(addip.sleep_before-time.time()>iptool.get_config("iptool","sleep_time")):addip.sleep_before=0
 				time.sleep(5)
 			addip.sleep_before=0
-			while (not checkconnect(iptool.get_config("testip","checkconn_addr"))):
+			while (not checkconnection(iptool.get_config("testip","checkconn_addr"))):
 				time.sleep(1)
 			costtime=time.time()
 			c = iptool.create_ssl_socket(ip, iptool.get_config("testip","timeout"))
 			costtime=int(time.time()*1000-costtime*1000)
-			cert = c.getpeercert()
-			if 'subject' in cert:
-				for i in cert['subject']:
-					if i[0][0]=='organizationName' and i[0][1]=='Google Inc':
-						c.send("HEAD /favicon.ico HTTP/1.1\r\nHost: goagent.appspot.com\r\n\r\n")
-						response=httplib.HTTPResponse(c,buffering=True)
-						response.begin()
-						if "Google Frontend" in response.msg.dict["server"]:
-							iperror=False
-							addip.addip(ip,costtime)
-							testiprecord(costtime)
-						elif "google.com/sorry/" in response.msg.dict["location"]:
-							iperror=False
-							with addip.sleeplock:
-								if addip.sleep_before==0:
-									logging.warn("iptool sleeps for %d secs", iptool.get_config("iptool","sleep_time"))
-								addip.sleep_before=time.time()+iptool.get_config("iptool","sleep_time")
-						break
+			result=iptool.test_connection(c)
+			if result==iptool.TEST_OK:
+				iperror=False
+				addip.addip(ip,costtime)
+				testiprecord(costtime)
+			elif result==iptool.TEST_UNDEFINED:
+				iperror=False
 			c.close()
 		else:
 			time.sleep(1)
@@ -145,7 +134,7 @@ def testipwork(mode):
 	if ipvalid:
 		try:
 			if iperror:
-				if checkconnect(iptool.get_config("testip","checkconn_addr")):
+				if checkconnection(iptool.get_config("testip","checkconn_addr")):
 					addip.addip(ip, addip.TIME_INF)
 					testiprecord(addip.TIME_INF)
 			testipsleep()
