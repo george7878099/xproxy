@@ -62,7 +62,7 @@ def parseiprange(ip):
 		else:
 			begin=iptoint(i)
 			if begin!=0:
-				lst.append(begin,begin)
+				lst.append((begin,begin))
 	return lst
 
 def getiplist():
